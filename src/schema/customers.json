@@ -1,0 +1,49 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://Customers",
+    "title": "Customers",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "created": {
+            "type": "number"
+        },
+        "status": {
+            "type": "string"
+        },
+        "threeWordsUbication": {
+            "type": "string"
+        },
+        "contact": {
+            "type": "object",
+            "title": "Contact",
+            "additionalProperties": false,
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "lastName": {
+                    "type": "string"
+                },
+                "adress": {
+                    "type": "string"
+                },
+                "phoneNumber": {
+                    "type": "string"
+                }
+            }
+        },
+        "creditorCompanyId": {
+            "type": "string"
+        },
+        "userId": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "creditorCompanyId",
+        "userId",
+        "threeWordsUbication",
+        "contact"
+    ]
+}

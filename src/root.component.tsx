@@ -8,6 +8,7 @@ import HomeDashboardContainer from './containers/mobile-dashboard/HomeDashboardC
 import WalletDashboardContainer from './containers/wallet/WalletDashboardContainer/WalletDashboardContainer.tsx';
 import Main from './layout/main/main.tsx';
 import CreditsDashboardContainer from './containers/Credits/CreditsDashboardContainer/CreditsDashboardContainer.tsx';
+import CreditsCustomerContainer from './containers/CreditsCustomer/CreditsCustomerContainer/CreditsCustomerContainer.tsx';
 
 
 export const appRouter = createBrowserRouter([
@@ -18,7 +19,9 @@ export const appRouter = createBrowserRouter([
     children: [
       { index: true, path: "home-Dashboard", Component: HomeDashboardContainer },
       { index: true, path: "wallet-dashboard", Component: WalletDashboardContainer },
-      { index: true, path: "credits-dashboard", Component: CreditsDashboardContainer }
+      { index: true, path: "credits-dashboard", Component: CreditsDashboardContainer },
+      {index:  true, path : "customer-create",Component: CreditsCustomerContainer} 
+    
     ]
   }
 ]);
