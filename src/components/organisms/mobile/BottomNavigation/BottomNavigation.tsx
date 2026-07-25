@@ -40,7 +40,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ active, onChange })
         <BottomNavigationAction label="Clientes" value="clients" icon={<PeopleAltRoundedIcon />} />
         <BottomNavigationAction label="Préstamos" value="loans" icon={<AccountBalanceRoundedIcon />} />
         <BottomNavigationAction label="Cartera" value="wallet" icon={<CreditCardRoundedIcon />} />
-        <BottomNavigationAction label="Credits" value="Credits" icon={<CreditCardRoundedIcon />} />
+        <BottomNavigationAction label="Credits" value="credits" icon={<CreditCardRoundedIcon />} />
       </MuiBottomNavigation>
     </Paper>
   );

@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "http://UserRequest",
+  "title": "UserRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "userName": {
+      "type": "string"
+    },
+    "password": {
+      "type": "string"
+    },
+    "rememberMe": {
+      "type": "boolean"
+    }
+  },
+  "required": ["userName", "password"]
+}

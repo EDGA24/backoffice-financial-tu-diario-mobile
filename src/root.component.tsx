@@ -9,19 +9,23 @@ import WalletDashboardContainer from './containers/wallet/WalletDashboardContain
 import Main from './layout/main/main.tsx';
 import CreditsDashboardContainer from './containers/Credits/CreditsDashboardContainer/CreditsDashboardContainer.tsx';
 import CreditsCustomerContainer from './containers/CreditsCustomer/CreditsCustomerContainer/CreditsCustomerContainer.tsx';
+import LoginDashboardContainer from './containers/Login/Authentication/LoginDashboarContiainer.tsx';
 
 
 export const appRouter = createBrowserRouter([
-
+  {
+    path: '/login',
+    Component: LoginDashboardContainer,
+  },
   {
     path: '/',
     element: <Main />,
     children: [
-      { index: true, path: "home-Dashboard", Component: HomeDashboardContainer },
-      { index: true, path: "wallet-dashboard", Component: WalletDashboardContainer },
-      { index: true, path: "credits-dashboard", Component: CreditsDashboardContainer },
-      {index:  true, path : "customer-create",Component: CreditsCustomerContainer} 
-    
+      { index: true, Component: HomeDashboardContainer }, 
+      { path: 'home-Dashboard', Component: HomeDashboardContainer },
+      { path: 'wallet-dashboard', Component: WalletDashboardContainer },
+      { path: 'credits-dashboard', Component: CreditsDashboardContainer },
+      { path: 'customer-create', Component: CreditsCustomerContainer },
     ]
   }
 ]);

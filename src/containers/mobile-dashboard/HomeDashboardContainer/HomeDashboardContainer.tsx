@@ -1,5 +1,3 @@
-import { Fab } from '@mui/material';
-import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import AlertBanner from '@/components/molecules/mobile/AlertBanner/AlertBanner';
 import useHomeDashboardState from './state/useHomeDashboardState';
 import React from 'react';
@@ -27,14 +25,6 @@ const HomeDashboardContainer = () => {
 
             {/* --- Últimos préstamos --- */}
             <DashboardContactTable loans={loans} />
-
-            <Fab
-                color="primary"
-                sx={{ position: 'fixed', right: 20, bottom: 84 }}
-                aria-label="Agregar"
-            >
-                <AddRoundedIcon />
-            </Fab>
         </React.Fragment>
     );
 };

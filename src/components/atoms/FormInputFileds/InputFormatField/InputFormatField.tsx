@@ -1,7 +1,7 @@
 import React from 'react';
 import { Controller } from 'react-hook-form';
 import type { FieldErrors } from 'react-hook-form';
-import { TextField } from '@mui/material';
+import { TextField, InputAdornment } from '@mui/material';
 import { get } from 'lodash';
 
 export interface InputFormatFieldProps {
@@ -14,6 +14,7 @@ export interface InputFormatFieldProps {
   label?: string;
   placeholder?: string;
   rules?: {};
+  startIcon?: React.ReactNode;
 }
 
 const mobileFieldSx = {
@@ -40,6 +41,7 @@ const InputFormatField: React.FC<InputFormatFieldProps> = ({
   label,
   placeholder,
   rules = {},
+  startIcon,
 }) => {
   const isDate = type === 'date';
   const fieldError = get(errors, name);
@@ -62,7 +64,16 @@ const InputFormatField: React.FC<InputFormatFieldProps> = ({
           variant="outlined"
           error={!!fieldError}
           helperText={(fieldError?.message as string) ?? ' '}
-          slotProps={isDate ? { inputLabel: { shrink: true } } : undefined}
+          slotProps={{
+            ...(isDate ? { inputLabel: { shrink: true } } : {}),
+            input: startIcon
+              ? {
+                  startAdornment: (
+                    <InputAdornment position="start">{startIcon}</InputAdornment>
+                  ),
+                }
+              : undefined,
+          }}
           sx={{ ...mobileFieldSx, ...sx }}
         />
       )}
