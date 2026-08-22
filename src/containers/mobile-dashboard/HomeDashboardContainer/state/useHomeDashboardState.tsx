@@ -1,11 +1,15 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { type NavKey } from '@/components/organisms/mobile/BottomNavigation/BottomNavigation';
 import { type LoanStatus } from '@/components/atoms/StatusChip/StatusChip';
-import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded';
-import AccountBalanceRoundedIcon from '@mui/icons-material/AccountBalanceRounded';
+import RequestQuoteRoundedIcon from '@mui/icons-material/RequestQuoteRounded';
 import CreditCardRoundedIcon from '@mui/icons-material/CreditCardRounded';
-import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
+import SwapHorizRoundedIcon from '@mui/icons-material/SwapHorizRounded';
+import CalendarViewWeekRoundedIcon from '@mui/icons-material/CalendarViewWeekRounded';
+import TodayRoundedIcon from '@mui/icons-material/TodayRounded';
 import type { QuickActionItem } from '@/components/molecules/mobile/QuickActionSection/QuickActionsSection';
+import { NAV_ROUTES } from '@/shared/constants/navRoutes';
+import { ChargeFrequencyEnum } from '@/shared/constants/ChargeFrequencyEnum';
 
 
 export interface LoanSummary {
@@ -17,34 +21,28 @@ export interface LoanSummary {
   status: LoanStatus;
 }
 
-const quickActions: QuickActionItem[] = [
-  { icon: PeopleAltRoundedIcon, label: 'Nuevo Cliente', color: '#1e3c72', filled: true },
-  { icon: AccountBalanceRoundedIcon, label: 'Nuevo Préstamo', color: '#9c27b0', filled: true },
-  { icon: CreditCardRoundedIcon, label: 'Gestionar Cartera', color: '#2a5298' },
-  { icon: VisibilityRoundedIcon, label: 'Historial Clientes', color: '#2a5298' },
-];
-
-
-const MOCK_LOANS: LoanSummary[] = [
-  { initials: 'EM', name: 'Erick Manuel', phone: '961 123 4567', date: '25/03/26', amount: '$3,000.00', status: 'paid' },
-  { initials: 'EM', name: 'Erick Manuel', phone: '961 123 4567', date: '25/03/26', amount: '$3,000.00', status: 'restructured' },
-  { initials: 'MJ', name: 'María José', phone: '961 987 6543', date: '18/03/26', amount: '$1,500.00', status: 'late' },
-];
-
 const useHomeDashboardState = () => {
+  const navigate = useNavigate();
   const [activeNav, setActiveNav] = useState<NavKey>('home');
+
+  const goToCreditsFilteredByFrequency = (chargeFrequency: ChargeFrequencyEnum) => {
+    navigate(NAV_ROUTES.loans, { state: { chargeFrequency: [chargeFrequency] } });
+  };
+
+  const quickActions: QuickActionItem[] = [
+    { icon: RequestQuoteRoundedIcon, label: 'Nuevo Credito', color: '#9c27b0', filled: true, onClick: () => navigate(NAV_ROUTES.newcredits) },
+    { icon: CreditCardRoundedIcon, label: 'Gestionar Cartera', color: '#2a5298', onClick: () => navigate(NAV_ROUTES.loans) },
+    { icon: TodayRoundedIcon, label: 'Créditos Diario', color: '#ef6c00', onClick: () => goToCreditsFilteredByFrequency(ChargeFrequencyEnum.DAILY) },
+    { icon: CalendarViewWeekRoundedIcon, label: 'Créditos Semanal', color: '#00838f', onClick: () => goToCreditsFilteredByFrequency(ChargeFrequencyEnum.WEEKLY) },
+    { icon: SwapHorizRoundedIcon, label: 'Movimientos', color: '#2e7d32', fullWidth: true, onClick: () => navigate(NAV_ROUTES.wallet) },
+  ];
 
 
   const stats = {
-    totalClientes: 1,
-    prestamosActivos: 1,
-    cartera: 1,
-    alertas: 1,
+    creditosDiariosActivos: 1,
+    creditosSemanalesActivos: 1,
+    clientesTotal: 1,
   };
-
-  const alertText = '1 pago vencido y 1 cliente moroso requieren atención.';
-
-  const loans = MOCK_LOANS;
 
   const handleNavChange = (key: NavKey) => setActiveNav(key);
 
@@ -52,10 +50,6 @@ const useHomeDashboardState = () => {
     activeNav,
     handleNavChange,
     stats,
-    alertText,
-    loans,
-    userName: 'Erick Manuel',
-    userInitials: 'EM',
     quickActions
   };
 };

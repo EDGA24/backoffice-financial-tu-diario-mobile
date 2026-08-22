@@ -1,20 +1,19 @@
 import React from 'react';
-import { Box, Typography, IconButton, Badge } from '@mui/material';
-import NotificationsRoundedIcon from '@mui/icons-material/NotificationsRounded';
+import { Box, Typography, IconButton } from '@mui/material';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import Avatar from '@/components/atoms/Avatar/Avatar';
+import ThemeToggleButton from '@/components/atoms/ThemeToggleButton/ThemeToggleButton';
 
 export interface MobileDashboardHeaderProps {
   userName: string;
   initials: string;
-  notificationsCount?: number;
-  onNotificationsClick?: () => void;
+  onLogoutClick?: () => void;
 }
 
 const MobileDashboardHeader: React.FC<MobileDashboardHeaderProps> = ({
   userName,
   initials,
-  notificationsCount = 0,
-  onNotificationsClick,
+  onLogoutClick,
 }) => {
   return (
     <Box
@@ -39,17 +38,21 @@ const MobileDashboardHeader: React.FC<MobileDashboardHeaderProps> = ({
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <IconButton
-            onClick={onNotificationsClick}
+          <ThemeToggleButton
+            iconColor="#fff"
             sx={{ backgroundColor: 'rgba(255,255,255,0.15)', width: 36, height: 36 }}
-          >
-            <Badge color="error" variant="dot" invisible={notificationsCount === 0}>
-              <NotificationsRoundedIcon sx={{ color: '#fff', fontSize: 18 }} />
-            </Badge>
-          </IconButton>
+          />
           <Avatar size="small" sx={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
             {initials}
           </Avatar>
+
+          <IconButton
+            onClick={onLogoutClick}
+            aria-label="Cerrar sesión"
+            sx={{ backgroundColor: 'rgba(255,255,255,0.15)', width: 36, height: 36 }}
+          >
+            <LogoutRoundedIcon sx={{ color: '#fff', fontSize: 18 }} />
+          </IconButton>
         </Box>
       </Box>
     </Box>

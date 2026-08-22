@@ -1,31 +1,36 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import theme from './theme.ts';
-import { ThemeProvider } from '@emotion/react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { AppThemeProvider } from '@/theme/ColorModeContext';
+import { createHashRouter, RouterProvider } from 'react-router-dom';
 import HomeDashboardContainer from './containers/mobile-dashboard/HomeDashboardContainer/HomeDashboardContainer.tsx';
 import WalletDashboardContainer from './containers/wallet/WalletDashboardContainer/WalletDashboardContainer.tsx';
 import Main from './layout/main/main.tsx';
 import CreditsDashboardContainer from './containers/Credits/CreditsDashboardContainer/CreditsDashboardContainer.tsx';
 import CreditsCustomerContainer from './containers/CreditsCustomer/CreditsCustomerContainer/CreditsCustomerContainer.tsx';
 import LoginDashboardContainer from './containers/Login/Authentication/LoginDashboarContiainer.tsx';
+import ProtectedRoute from './components/atoms/ProtectedRoute/ProtectedRoute.tsx';
 
 
-export const appRouter = createBrowserRouter([
+export const appRouter = createHashRouter([
   {
     path: '/login',
     Component: LoginDashboardContainer,
   },
   {
     path: '/',
-    element: <Main />,
+    Component: ProtectedRoute,
     children: [
-      { index: true, Component: HomeDashboardContainer }, 
-      { path: 'home-Dashboard', Component: HomeDashboardContainer },
-      { path: 'wallet-dashboard', Component: WalletDashboardContainer },
-      { path: 'credits-dashboard', Component: CreditsDashboardContainer },
-      { path: 'customer-create', Component: CreditsCustomerContainer },
+      {
+        element: <Main />,
+        children: [
+          { index: true, Component: HomeDashboardContainer },
+          { path: 'home-Dashboard', Component: HomeDashboardContainer },
+          { path: 'wallet-dashboard', Component: WalletDashboardContainer },
+          { path: 'credits-dashboard', Component: CreditsDashboardContainer },
+          { path: 'customer-create', Component: CreditsCustomerContainer },
+        ]
+      }
     ]
   }
 ]);
@@ -33,8 +38,8 @@ export const appRouter = createBrowserRouter([
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider theme={theme}>
+    <AppThemeProvider>
       <RouterProvider router={appRouter} />
-    </ThemeProvider>
+    </AppThemeProvider>
   </StrictMode>
 )

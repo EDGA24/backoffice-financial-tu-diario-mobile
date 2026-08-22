@@ -16,6 +16,7 @@ import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import ScheduleRoundedIcon from '@mui/icons-material/ScheduleRounded';
 import ErrorRoundedIcon from '@mui/icons-material/ErrorRounded';
+import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
 import type { LoanSummary, PaymentRecord } from '../DashboardContacTable/DashboardContacTable';
 
 export interface PaymentHistoryModalProps {
@@ -45,6 +46,11 @@ const STATUS_CONFIG: Record<PaymentRecord['status'], StatusConfigEntry> = {
         color: 'text.disabled',
         icon: <ScheduleRoundedIcon sx={{ fontSize: 18 }} />,
         label: 'Pendiente',
+    },
+    cancelado: {
+        color: 'text.disabled',
+        icon: <CancelRoundedIcon sx={{ fontSize: 18 }} />,
+        label: 'Cancelado',
     },
 };
 

@@ -3,26 +3,18 @@ import { Box, Typography } from '@mui/material';
 import type { Control, FieldErrors, FieldValues } from 'react-hook-form';
 
 import InputFormatField from '@/components/atoms/FormInputFileds/InputFormatField/InputFormatField';
-import AutocompleteFormatField from '@/components/atoms/FormInputFileds/AutocompleteFormatField/AutocompleteFormatField';
 import { CreditFormFieldsEnum } from '@/shared/constants/CreditFormFieldsEnum';
 import type { Credits } from '@/types/Credits';
 import ChargeRulesAutocompleteField, {
   type ChargeRuleOption,
 } from '../../ChargeRulesAutocompleteField/ChargeRulesAutocompleteField';
 
-const STATUS_OPTIONS = [
-  { optionId: 'CHARGE-PROCESS', label: 'En proceso de cobro' },
-  { optionId: 'SLOW-PAY', label: 'Pago lento' },
-  { optionId: 'PAID', label: 'Pagado' },
-  { optionId: 'RESTRUCTURED', label: 'Reestructurado' },
-];
-
 const CHARGE_RULES_OPTIONS: ChargeRuleOption[] = [
   {
     optionId: 'daily-standard',
-    label: 'Diario · 12 pagos ',
+    label: 'Diario · 20 pagos ',
     chargeFrequency: 'DAILY',
-    chargePeriods: 12,
+    chargePeriods: 20,
     renovationPeriod: 0,
     comissionRate: 5,
   },
@@ -55,7 +47,22 @@ export const CreditForm: React.FC<CreditFormProps> = ({ control, errors, setValu
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Typography sx={{ mb: -0.5, fontWeight: 700, fontSize: 16, color: 'primary.main' }}>
+      <Typography sx={{ mb: -0.5, fontWeight: 700, fontSize: 14, color: 'primary.main' }}>
+        Reglas de cobro
+      </Typography>
+
+      <ChargeRulesAutocompleteField
+        name="selectedChargeRulesId"
+        control={control}
+        errors={errors}
+        options={CHARGE_RULES_OPTIONS}
+        chargeRulesNamePrefix="chargeRules"
+        onSelectOption={handleSelectChargeRules}
+        required
+        label="Selecciona reglas de cobro"
+      />
+
+      <Typography sx={{ mt: 1, mb: -0.5, fontWeight: 700, fontSize: 16, color: 'primary.main' }}>
         Información del crédito
       </Typography>
 
@@ -96,49 +103,9 @@ export const CreditForm: React.FC<CreditFormProps> = ({ control, errors, setValu
         placeholder="0.00"
       />
 
-      <InputFormatField
-        name={CreditFormFieldsEnum.CREDIT_AMOUNT_WITH_MORATORY}
-        control={control}
-        errors={errors}
-        required
-        type="number"
-        label="Monto con moratorios"
-        placeholder="0.00"
-      />
-
-      <InputFormatField
-        name={CreditFormFieldsEnum.FIXED_CHARGE}
-        control={control}
-        errors={errors}
-        required
-        type="number"
-        label="Cargo fijo"
-        placeholder="0.00"
-      />
-
-      <AutocompleteFormatField
-        name={CreditFormFieldsEnum.STATUS}
-        control={control}
-        errors={errors}
-        options={STATUS_OPTIONS}
-        required
-        label="Estatus"
-      />
-
-      <Typography sx={{ mt: 1, mb: -0.5, fontWeight: 700, fontSize: 14, color: 'primary.main' }}>
-        Reglas de cobro
+      <Typography variant="caption" color="text.secondary">
+        Cargo fijo: se calcula automáticamente por el sistema
       </Typography>
-
-      <ChargeRulesAutocompleteField
-        name="selectedChargeRulesId"
-        control={control}
-        errors={errors}
-        options={CHARGE_RULES_OPTIONS}
-        chargeRulesNamePrefix="chargeRules"
-        onSelectOption={handleSelectChargeRules}
-        required
-        label="Selecciona reglas de cobro"
-      />
     </Box>
   );
 };

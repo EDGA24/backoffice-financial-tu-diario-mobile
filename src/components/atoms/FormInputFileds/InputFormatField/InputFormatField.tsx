@@ -15,6 +15,7 @@ export interface InputFormatFieldProps {
   placeholder?: string;
   rules?: {};
   startIcon?: React.ReactNode;
+  disabled?: boolean;
 }
 
 const mobileFieldSx = {
@@ -42,6 +43,7 @@ const InputFormatField: React.FC<InputFormatFieldProps> = ({
   placeholder,
   rules = {},
   startIcon,
+  disabled = false,
 }) => {
   const isDate = type === 'date';
   const fieldError = get(errors, name);
@@ -61,6 +63,7 @@ const InputFormatField: React.FC<InputFormatFieldProps> = ({
           placeholder={placeholder}
           required={required}
           type={type}
+          disabled={disabled}
           variant="outlined"
           error={!!fieldError}
           helperText={(fieldError?.message as string) ?? ' '}

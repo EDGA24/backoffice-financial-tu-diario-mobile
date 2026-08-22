@@ -1,0 +1,48 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://SearchCreditsByEployeeRequest",
+    "title": "SearchCreditsByEployeeRequest",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "filtersItems": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "creditorCompanyId": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                },
+                "generalSearch": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "creditorCompanyId",
+                "userId"
+            ]
+        },
+        "pagination": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "pageNumber": {
+                    "type": "number"
+                },
+                "limit": {
+                    "type": "number"
+                }
+            },
+            "required": [
+                "pageNumber",
+                "limit"
+            ]
+        }
+    },
+    "required": [
+        "filtersItems",
+        "pagination"
+    ]
+}

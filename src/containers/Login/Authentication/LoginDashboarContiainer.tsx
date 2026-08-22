@@ -5,15 +5,15 @@ import { useAuthenticationState } from './state/useAuthenticationState';
 
 
 const LoginDashboardContainer = () => {
-    const { form, loading } = useAuthenticationState();
+    const { form, loading, error, showSlowServerHint } = useAuthenticationState();
     return (
         <React.Fragment>
             <LoginForm
                 control={form.control}
                 errors={form.errors}
                 loadingSave={loading}
-                //catalogEmployeeOptions={form.catalogEmployeeOptions}
-                //catalogCustomerOptions={form.catalogCustomerOptions}
+                showSlowServerHint={showSlowServerHint}
+                serverError={error}
                 onLogin={form.handleOnSubmitLogin}
             />
 

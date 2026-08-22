@@ -9,7 +9,7 @@ import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded';
 import AccountBalanceRoundedIcon from '@mui/icons-material/AccountBalanceRounded';
 import CreditCardRoundedIcon from '@mui/icons-material/CreditCardRounded';
 
-export type NavKey = 'home' | 'clients' | 'loans' | 'wallet' | 'credits';
+export type NavKey = 'home' | 'newcredits' | 'loans' | 'wallet';
 
 export interface BottomNavigationProps {
   active: NavKey;
@@ -37,10 +37,9 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ active, onChange })
         sx={{ height: 64 }}
       >
         <BottomNavigationAction label="Inicio" value="home" icon={<HomeRoundedIcon />} />
-        <BottomNavigationAction label="Clientes" value="clients" icon={<PeopleAltRoundedIcon />} />
-        <BottomNavigationAction label="Préstamos" value="loans" icon={<AccountBalanceRoundedIcon />} />
+        <BottomNavigationAction label="Nuevo credito" value="newcredits" icon={<PeopleAltRoundedIcon />} />
+        <BottomNavigationAction label="Creditos" value="loans" icon={<AccountBalanceRoundedIcon />} />
         <BottomNavigationAction label="Cartera" value="wallet" icon={<CreditCardRoundedIcon />} />
-        <BottomNavigationAction label="Credits" value="credits" icon={<CreditCardRoundedIcon />} />
       </MuiBottomNavigation>
     </Paper>
   );

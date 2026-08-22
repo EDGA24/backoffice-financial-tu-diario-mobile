@@ -8,7 +8,7 @@ export interface Customers {
 }
 
 export interface Contact {
-    adress?:      string;
+    address?:     string;
     lastName?:    string;
     name?:        string;
     phoneNumber?: string;

@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "http://SearchTransactionsByUserRequest",
+  "title": "SearchTransactionsByUserRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "filtersItems": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "creditorCompanyId": {
+          "type": "string"
+        },
+        "transactionType": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "generalSearch": {
+          "type": "string"
+        },
+        "accountInformacion": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "walletId": {
+              "type": "string"
+            },
+            "accountNumber": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "walletId",
+            "accountNumber"
+          ]
+        },
+        "createdRangeDate": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "startDate": {
+              "type": "string"
+            },
+            "endDate": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "creditorCompanyId",
+        "accountInformacion"
+      ]
+    },
+    "pagination": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pageNumber": {
+          "type": "number"
+        },
+        "limit": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "pageNumber",
+        "limit"
+      ]
+    }
+  },
+  "required": [
+    "filtersItems",
+    "pagination"
+  ]
+}

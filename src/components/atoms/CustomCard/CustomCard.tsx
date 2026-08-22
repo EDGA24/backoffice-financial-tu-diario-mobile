@@ -1,4 +1,4 @@
-import React, { JSX } from 'react';
+import { JSX } from 'react';
 import { Paper } from '@mui/material';
 
 export interface CustomCardProps {

@@ -1,10 +1,27 @@
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { IFormProps } from '@/shared/interfaces/IFormProps';
 import type { Customers } from '@/types/Customers';
 import type { Credits } from '@/types/Credits';
+import type { LoanSummary } from '@/components/molecules/mobile/DashboardContacTable/DashboardContacTable';
 import { get } from 'lodash';
 import { useCreditStore } from '@/stores/credits.store';
+import { useAuthStore } from '@/stores/auth.store';
+import { NAV_ROUTES } from '@/shared/constants/navRoutes';
+import type { TransactionOverlayStatus } from '@/components/molecules/mobile/TransactionStatusOverlay/TransactionStatusOverlay';
+
+// Cuánto se queda visible el aviso de "éxito" antes de navegar.
+const SUCCESS_OVERLAY_DURATION_MS = 1600;
+// Mínimo que se muestra el "cargando" aunque el backend responda al instante.
+const MIN_LOADING_OVERLAY_MS = 900;
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+interface RenovacionNavigationState {
+    modo?: string;
+    loan?: LoanSummary;
+}
 
 
 export interface CustomerSummary {
@@ -19,7 +36,9 @@ export interface CustomerSummary {
 
 export interface IUseCreditsCustomerContainerState {
     loadingSave: boolean;
+    creditOverlayStatus: TransactionOverlayStatus;
     isExistingCustomer: boolean;
+    isRenewal: boolean;
     handleOnSaveCredit: () => void;
 
     customerSelector: {
@@ -29,24 +48,12 @@ export interface IUseCreditsCustomerContainerState {
         summary?: CustomerSummary;
     };
 
-    customer: IFormProps<Customers> & {
-        catalogEmployeeOptions: { optionId: string; label: string }[];
-        catalogCustomerOptions: { optionId: string; label: string }[];
-    };
+    customer: IFormProps<Customers>;
 
     credit: IFormProps<Credits> & {
         setValue: any;
     };
 }
-
-const EMPLOYEE_OPTIONS = [
-    { optionId: '1', label: 'Jose Manuel' },
-    { optionId: '2', label: 'Jose de Jesus' },
-    { optionId: '3', label: 'Erick' },
-    { optionId: '4', label: 'Antony' },
-    { optionId: '5', label: 'Javier' },
-    { optionId: '6', label: 'Eduardo' },
-];
 
 const CUSTOMER_OPTIONS: CustomerSummary[] = [
     {
@@ -111,10 +118,18 @@ const CUSTOMER_AUTOCOMPLETE_OPTIONS = CUSTOMER_OPTIONS.map((customer) => ({
 }));
 
 export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainerState => {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const { modo, loan: renewalLoan } = (location.state ?? {}) as RenovacionNavigationState;
+    const isRenewal = modo === 'renovacion' && Boolean(renewalLoan);
+
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
     const [loadingSave, setLoadingSave] = useState(false);
+    const [creditOverlayStatus, setCreditOverlayStatus] = useState<TransactionOverlayStatus>(null);
 
-    const { notification, createCredit } = useCreditStore();
+    const { createCredit } = useCreditStore();
+    const creditorCompanyId = useAuthStore((state) => state.user?.creditorCompanyId ?? '');
+    const userId = useAuthStore((state) => state.user?._id ?? '');
 
     const {
         control: controlCustomer,
@@ -125,13 +140,13 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
                 name: '',
                 lastName: '',
                 phoneNumber: '',
-                adress: '',
+                address: '',
             },
             created: Date.now(),
-            creditorCompanyId: '123',
+            creditorCompanyId,
             status: 'Active',
             threeWordsUbication: '',
-            userId: '',
+            userId,
         },
     });
 
@@ -141,17 +156,16 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
         setValue: setValueCredit,
     } = useForm<Credits>({
         defaultValues: {
-            creditorCompanyId: '123',
-            customerId: '',
-            transactionId: 'tx_001',
-            userId: '123124',
-            admissionDate: undefined,
+            creditorCompanyId: renewalLoan?.creditorCompanyId ?? creditorCompanyId,
+            customerId: renewalLoan?.customerId ?? '',
+            userId: renewalLoan?.employeeId ?? userId,
+            admissionDate: Date.now(),
             created: Date.now(),
             creditAmount: 0,
             creditAmountWithMoratory: 0,
-            expirationDate: undefined,
+            expirationDate: Date.now(),
             fixedCharge: 0,
-            startDateChargeConfig: undefined,
+            startDateChargeConfig: Date.now(),
             status: 'Active',
             chargeRules: {
                 chargeFrequency: 'weekly',
@@ -171,35 +185,83 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
 
     const handleOnSaveCredit = async () => {
         setLoadingSave(true);
+        // Bloquea toda la pantalla para que no se pueda picar "Guardar" otra vez
+        // mientras la petición sigue en curso.
+        setCreditOverlayStatus('loading');
+        const loadingStartedAt = Date.now();
         console.log('selectedCustomerId:', selectedCustomerId);
         console.log('customerFormState:', customerFormState);
         console.log('creditFormState:', creditFormState);
 
-        await createCredit({
-            creditorCompanyId: get(creditFormState, 'creditorCompanyId', '123'),
-            customerId: selectedCustomerId || get(creditFormState, 'customerId', ''),
-            transactionId: get(creditFormState, 'transactionId', ''),
-            userId: get(creditFormState, 'userId', ''),
-            admissionDate: get(creditFormState, 'admissionDate'),
-            created: get(creditFormState, 'created', Date.now()),
-            creditAmount: get(creditFormState, 'creditAmount', 0),
-            creditAmountWithMoratory: get(creditFormState, 'creditAmountWithMoratory', 0),
-            expirationDate: get(creditFormState, 'expirationDate'),
-            fixedCharge: get(creditFormState, 'fixedCharge', 0),
-            startDateChargeConfig: get(creditFormState, 'startDateChargeConfig'),
-            status: get(creditFormState, 'status', 'Active'),
-            chargeRules: get(creditFormState, 'chargeRules', {}),
-        } as Credits);
+        try {
+            const credit: Credits = {
+                creditorCompanyId: get(creditFormState, 'creditorCompanyId', creditorCompanyId),
+                customerId: renewalLoan?.customerId || selectedCustomerId || get(creditFormState, 'customerId', ''),
+                transactionId: get(creditFormState, 'transactionId', ''),
+                userId: get(creditFormState, 'userId', userId),
+                admissionDate: get(creditFormState, 'admissionDate'),
+                created: get(creditFormState, 'created', Date.now()),
+                creditAmount: get(creditFormState, 'creditAmount', 0),
+                creditAmountWithMoratory: get(creditFormState, 'creditAmountWithMoratory', 0),
+                expirationDate: get(creditFormState, 'expirationDate'),
+                fixedCharge: get(creditFormState, 'fixedCharge', 0),
+                startDateChargeConfig: get(creditFormState, 'startDateChargeConfig'),
+                status: get(creditFormState, 'status', 'Active'),
+                chargeRules: get(creditFormState, 'chargeRules', {}),
+            } as Credits;
+
+            await createCredit({
+                // Solo se manda "customer" cuando se está capturando un cliente nuevo;
+                // si ya existe (selector o renovación), el backend lo resuelve por customerId.
+                ...(isExistingCustomer ? {} : { customer: customerFormState as Customers }),
+                credit,
+            });
+
+            // Si el backend respondió muy rápido (p.ej. en local), espera a
+            // completar el mínimo para que el "cargando" alcance a verse.
+            const elapsed = Date.now() - loadingStartedAt;
+            if (elapsed < MIN_LOADING_OVERLAY_MS) {
+                await wait(MIN_LOADING_OVERLAY_MS - elapsed);
+            }
+
+            setCreditOverlayStatus('success');
+            setTimeout(() => {
+                setCreditOverlayStatus(null);
+                navigate(NAV_ROUTES.loans);
+            }, SUCCESS_OVERLAY_DURATION_MS);
+        } catch (error) {
+            console.error('Error al crear el crédito:', error);
+            setCreditOverlayStatus(null);
+        } finally {
+            setLoadingSave(false);
+        }
     };
 
-    const isExistingCustomer = Boolean(selectedCustomerId);
-    const selectedCustomerSummary = CUSTOMER_OPTIONS.find((customer) => customer.optionId === selectedCustomerId);
+    // En renovación el cliente ya viene definido por el crédito que se está
+    // renovando: no se elige de la lista mock, y no se vuelve a capturar.
+    const renewalCustomerSummary: CustomerSummary | undefined = renewalLoan
+        ? {
+            optionId: renewalLoan.customerId ?? '',
+            name: renewalLoan.name,
+            lastName: '',
+            address: renewalLoan.address ?? '',
+            status: renewalLoan.status,
+            phoneNumber: renewalLoan.phone,
+            threeWordsUbication: renewalLoan.threeWordsUbication ?? '',
+        }
+        : undefined;
+
+    const isExistingCustomer = isRenewal || Boolean(selectedCustomerId);
+    const selectedCustomerSummary = isRenewal
+        ? renewalCustomerSummary
+        : CUSTOMER_OPTIONS.find((customer) => customer.optionId === selectedCustomerId);
 
     return {
         loadingSave,
+        creditOverlayStatus,
         handleOnSaveCredit,
         isExistingCustomer,
-    
+        isRenewal,
 
         customerSelector: {
             value: selectedCustomerId,
@@ -210,8 +272,6 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
         customer: {
             control: controlCustomer,
             errors: errorsCustomer,
-            catalogEmployeeOptions: EMPLOYEE_OPTIONS,
-            catalogCustomerOptions: CUSTOMER_AUTOCOMPLETE_OPTIONS,
         },
         credit: {
             control: controlCredit,

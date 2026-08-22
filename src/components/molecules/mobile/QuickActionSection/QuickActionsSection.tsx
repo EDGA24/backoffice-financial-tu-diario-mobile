@@ -8,6 +8,7 @@ export interface QuickActionItem {
   label: string;
   color: string;
   filled?: boolean;
+  fullWidth?: boolean;
   onClick?: () => void;
 }
 
@@ -25,7 +26,9 @@ const QuickActionsSection: React.FC<QuickActionsSectionProps> = ({
       <Typography sx={{ mb: 1, fontWeight: 700, fontSize: 15 }}>{title}</Typography>
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
         {actions.map((action) => (
-          <QuickActionTile key={action.label} {...action} />
+          <Box key={action.label} sx={{ gridColumn: action.fullWidth ? '1 / -1' : 'auto' }}>
+            <QuickActionTile {...action} />
+          </Box>
         ))}
       </Box>
     </Box>

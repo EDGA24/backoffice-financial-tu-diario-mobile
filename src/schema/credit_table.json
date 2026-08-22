@@ -1,0 +1,139 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://CreditTable",
+    "title": "CreditTable",
+    "type": "object",
+    "additionalProperties": false,
+    "definitions": {
+        "chargeRules": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "chargeFrequency": {
+                    "type": "string"
+                },
+                "chargePeriods": {
+                    "type": "number"
+                },
+                "renovationPeriod": {
+                    "type": "number"
+                },
+                "comissionRate": {
+                    "type": "number"
+                }
+            },
+            "required": [
+                "chargeFrequency",
+                "chargePeriods",
+                "renovationPeriod",
+                "comissionRate"
+            ]
+        },
+        "customerBasicInfo": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "customerId": {
+                    "type": "string"
+                },
+                "fullName": {
+                    "type": "string"
+                },
+                "phoneNumber": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "customerId",
+                "fullName",
+                "phoneNumber"
+            ]
+        },
+        "employeeBasicInfo": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "userId": {
+                    "type": "string"
+                },
+                "fullName": {
+                    "type": "string"
+                },
+                "phoneNumber": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "userId",
+                "fullName",
+                "phoneNumber"
+            ]
+        }
+    },
+    "properties": {
+        "_id": {
+            "type": "string"
+        },
+        "startDateChargeConfig": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "admissionDate": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "expirationDate": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "creditAmount": {
+            "type": "number"
+        },
+        "creditAmountWithMoratory": {
+            "type": "number"
+        },
+        "fixedCharge": {
+            "type": "number"
+        },
+        "status": {
+            "type": "string",
+            "enum": ["CHARGE-PROCESS", "SLOW-PAY", "PAID", "RESTRUCTURED"]
+        },
+        "chargeRules": {
+            "$ref": "#definitions/chargeRules"
+        },
+        "userId": {
+            "type": "string"
+        },
+        "creditorCompanyId": {
+            "type": "string"
+        },
+        "transactionId": {
+            "type": "string"
+        },
+        "customerId": {
+            "type": "string"
+        },
+        "customerBasicInfo": {
+            "$ref": "#definitions/customerBasicInfo"
+        },
+        "employeeBasicInfo": {
+            "$ref": "#definitions/employeeBasicInfo"
+        }
+    },
+    "required": [
+        "_id",
+        "startDateChargeConfig",
+        "admissionDate",
+        "expirationDate",
+        "creditAmount",
+        "creditAmountWithMoratory",
+        "fixedCharge",
+        "status",
+        "chargeRules",
+        "userId",
+        "creditorCompanyId",
+        "transactionId",
+        "customerId"
+    ]
+}

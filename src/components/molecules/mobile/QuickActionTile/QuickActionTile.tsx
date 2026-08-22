@@ -5,8 +5,9 @@ import type { SvgIconComponent } from '@mui/icons-material';
 export interface QuickActionTileProps {
   icon: SvgIconComponent;
   label: string;
-  color: string; 
+  color: string;
   filled?: boolean;
+  fullWidth?: boolean;
   onClick?: () => void;
 }
 
@@ -15,6 +16,7 @@ const QuickActionTile: React.FC<QuickActionTileProps> = ({
   label,
   color,
   filled = false,
+  fullWidth = false,
   onClick,
 }) => {
   return (
@@ -22,11 +24,13 @@ const QuickActionTile: React.FC<QuickActionTileProps> = ({
       onClick={onClick}
       sx={{
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: fullWidth ? 'row' : 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        gap: 0.75,
-        py: 2.25,
+        justifyContent: fullWidth ? 'flex-start' : 'center',
+        gap: fullWidth ? 1.5 : 0.75,
+        py: fullWidth ? 2 : 2.25,
+        px: fullWidth ? 2.5 : 0,
+        width: '100%',
         borderRadius: 3,
         backgroundColor: filled ? color : 'background.paper',
         border: filled ? 'none' : '1px solid',
@@ -35,14 +39,14 @@ const QuickActionTile: React.FC<QuickActionTileProps> = ({
         '&:active': { transform: 'scale(0.97)' },
       }}
     >
-      <Icon sx={{ color: filled ? '#fff' : color, fontSize: 22 }} />
-      <Box sx={{ px: 0.5 }}>
+      <Icon sx={{ color: filled ? '#fff' : color, fontSize: fullWidth ? 24 : 22 }} />
+      <Box sx={{ px: fullWidth ? 0 : 0.5 }}>
         <Typography
-          variant="caption"
+          variant={fullWidth ? 'body2' : 'caption'}
           sx={{
             color: filled ? '#fff' : 'text.primary',
             fontWeight: 700,
-            textAlign: 'center',
+            textAlign: fullWidth ? 'left' : 'center',
             lineHeight: 1.2,
           }}
         >

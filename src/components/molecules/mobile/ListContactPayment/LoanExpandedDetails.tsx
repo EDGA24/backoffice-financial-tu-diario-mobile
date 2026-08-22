@@ -49,18 +49,19 @@ function InfoRow({
 export default function LoanExpandedDetails({ loan }: LoanExpandedDetailsProps) {
   const historial = loan.historialPagos ?? [];
 
-  // --- Todo derivado directamente del historial
+  // Progreso y próximo pago siguen derivados del historial simulado
   const totalPagos = historial.length;
   const pagosRealizados = historial.filter((p) => p.status === 'pagado').length;
-  const montoTotal = historial.reduce((sum, p) => sum + p.amount, 0);
-  const montoPagado = historial
-    .filter((p) => p.status === 'pagado')
-    .reduce((sum, p) => sum + p.amount, 0);
-
   const progresoPagos = totalPagos > 0 ? (pagosRealizados / totalPagos) * 100 : 0;
 
   // El próximo pago es el primer registro que no está pagado
   const proximoPago = historial.find((p) => p.status !== 'pagado')?.date;
+
+  // Monto pagado / por pagar: campos reales del crédito (amountPaid/amountDue),
+  // no derivados del historial simulado. El monto total ya se muestra arriba
+  // (loan.amount) antes de expandir la tarjeta.
+  const montoPagado = loan.amountPaid ?? 0;
+  const montoPorPagar = loan.amountDue ?? 0;
 
   return (
     <Box sx={{ pt: 1.5, pb: 0.5 }}>
@@ -87,8 +88,8 @@ export default function LoanExpandedDetails({ loan }: LoanExpandedDetailsProps) 
         />
         <InfoRow
           icon={<PaymentsRoundedIcon sx={{ fontSize: 15, color: 'primary.main' }} />}
-          label="Monto total"
-          value={`$${montoTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`}
+          label="Monto por pagar"
+          value={`$${montoPorPagar.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`}
         />
         {proximoPago && (
           <InfoRow
