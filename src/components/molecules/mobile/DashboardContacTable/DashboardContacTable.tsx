@@ -34,10 +34,14 @@ export interface LoanSummary {
   address?: string;
   threeWordsUbication?: string;
   fixedCharge?: number;
-  // Simulación: aún no existe backend que confirme el pago, así que se
-  // marca al enviarlo — 'pending' pinta la tarjeta de amarillo, 'onTime'
-  // la pinta de verde cuando el pago cayó dentro de los 7 días siguientes
-  // al inicio del periodo de cobro (startDateChargeConfig).
+  // 'pending' pinta la tarjeta de amarillo: la transacción de desembolso del
+  // crédito o el último pago real siguen sin aprobar (credit.transactionStatus /
+  // lastPayment.transactionStatus === 'pending'), o hay un pago recién enviado
+  // en esta sesión (optimista, antes del próximo refetch).
+  // 'onTime' la pinta de verde: crédito y último pago ya aprobados, y el pago
+  // cayó dentro de la ventana del periodo de cobro vigente según la
+  // frecuencia del crédito (1 día daily, 7 días weekly — ver
+  // ON_TIME_WINDOW_DAYS_BY_FREQUENCY en useCreditsDashboardState.tsx).
   transactionPaymentStatusTemp?: 'pending' | 'onTime';
 }
 
