@@ -227,7 +227,7 @@ const useWalletDashboardState = () => {
     if (!walletId) return;
     getWalletInfo({ walletId }).then(({ records }) => {
       const wallet = records[0];
-      setWalletTotalAmount(wallet?.totalAmount);
+      setWalletTotalAmount(wallet?.firmBalance);
       setWalletAccountNumber(wallet?.accountNumber ?? '');
       setWalletPendingIncomes(wallet?.pendingIncomesBalance);
       setWalletPendingExpenses(wallet?.pendingExpensesBalance);

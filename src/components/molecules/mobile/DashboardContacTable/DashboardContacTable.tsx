@@ -35,8 +35,10 @@ export interface LoanSummary {
   threeWordsUbication?: string;
   fixedCharge?: number;
   // Simulación: aún no existe backend que confirme el pago, así que se
-  // marca "pending" al enviarlo y la tarjeta se pinta de amarillo mientras dura.
-  transactionPaymentStatusTemp?: 'pending';
+  // marca al enviarlo — 'pending' pinta la tarjeta de amarillo, 'onTime'
+  // la pinta de verde cuando el pago cayó dentro de los 7 días siguientes
+  // al inicio del periodo de cobro (startDateChargeConfig).
+  transactionPaymentStatusTemp?: 'pending' | 'onTime';
 }
 
 export interface DashboardContactTableProps {

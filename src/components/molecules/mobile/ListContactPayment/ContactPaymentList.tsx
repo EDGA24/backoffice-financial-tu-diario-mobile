@@ -31,7 +31,7 @@ import AutorenewRoundedIcon from '@mui/icons-material/AutorenewRounded';
 import { useNavigate } from 'react-router-dom';
 import { useCreditStore } from '@/stores/credits.store';
 import type { PaymentTable } from '@/types/PaymentTable';
-import { PENDING_APPROVAL_YELLOW } from '@/shared/constants/statusColors';
+import { PENDING_APPROVAL_YELLOW, ON_TIME_PAYMENT_GREEN } from '@/shared/constants/statusColors';
 
 const PAYMENT_STATUS_MAP: Record<string, PaymentRecord['status']> = {
   approved: 'pagado',
@@ -177,6 +177,7 @@ export default function ContactPaymentList({
           const yaPagado = esPagado ? esPagado(loan) : false;
           const puedeRenovar = esElegibleParaRenovar ? esElegibleParaRenovar(loan) : true;
           const pagoPendiente = loan.transactionPaymentStatusTemp === 'pending';
+          const pagoATiempo = loan.transactionPaymentStatusTemp === 'onTime';
           const key = `${loan.phone}-${loan.date}-${i}`;
           const estaExpandido = expandedKey === key;
           const disabledAcciones = yaPagado || estaPagando;
@@ -188,6 +189,11 @@ export default function ContactPaymentList({
               sx={{
                 borderRadius: 3,
                 boxShadow: 'none',
+                ...(pagoATiempo && {
+                  backgroundColor: alpha(ON_TIME_PAYMENT_GREEN, 0.28),
+                  borderColor: alpha(ON_TIME_PAYMENT_GREEN, 0.85),
+                  borderWidth: 1.5,
+                }),
                 ...(pagoPendiente && {
                   backgroundColor: alpha(PENDING_APPROVAL_YELLOW, 0.28),
                   borderColor: alpha(PENDING_APPROVAL_YELLOW, 0.85),

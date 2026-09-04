@@ -12,10 +12,11 @@ import { GetPaymentRequest } from '@/types/GetPaymentRequest';
 import { PaymentTable } from '@/types/PaymentTable';
 import { GetWalletRequest } from '@/types/GetWalletRequest';
 import { WalletTable } from '@/types/WalletTable';
+import { GetCreditTotalsRequest, GetCreditTotalsResponse } from '@/types/GetCreditTotalsRequest';
 
-const BASE_URL = "https://credit-saas-gateway.onrender.com/credits";
-// Local: se deja comentada para usarla más adelante.
-// const BASE_URL = "http://localhost:4001/credits";
+// Despliegue: se deja comentada para usarla más adelante.
+// const BASE_URL = "https://credit-saas-gateway.onrender.com/credits";
+const BASE_URL = "http://localhost:4001/credits";
 
 interface CreditStoreState {
     creditsData: {
@@ -32,7 +33,8 @@ interface CreditStoreState {
     createCredit: (request: { customer?: Customers, credit: Credits }) => Promise<boolean>,
     createPayment: (request: { creditId: string, customerId: string, total: number }) => Promise<boolean>,
     getPaymentByCredit: (request: GetPaymentRequest) => Promise<{ total: number, records: PaymentTable[] }>,
-    getWalletInfo: (request: GetWalletRequest) => Promise<{ total: number, records: WalletTable[] }>
+    getWalletInfo: (request: GetWalletRequest) => Promise<{ total: number, records: WalletTable[] }>,
+    getCreditTotals: (request: GetCreditTotalsRequest) => Promise<GetCreditTotalsResponse>
 }
 
 export const useCreditStore = create<CreditStoreState>()(
@@ -70,6 +72,14 @@ export const useCreditStore = create<CreditStoreState>()(
                 return {
                     total: get(response.data, "data.total", 0),
                     records: get(response.data, "data.records", [])
+                };
+            },
+            getCreditTotals: async (request: GetCreditTotalsRequest) => {
+                const response = await axios.post<{ data: GetCreditTotalsResponse[] }>(`${BASE_URL}/getCreditTotals`, request);
+                return {
+                    totalToCollect: get(response.data, "data[0].totalToCollect", 0),
+                    totalCollected: get(response.data, "data[0].totalCollected", 0),
+                    totalPending: get(response.data, "data[0].totalPending", 0)
                 };
             }
         }),
