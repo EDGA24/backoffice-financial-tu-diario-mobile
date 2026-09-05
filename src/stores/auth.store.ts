@@ -8,9 +8,8 @@ import { LoginResponse, LoginResponseUser } from '@/types/LoginResponse';
 import { SearchEmployeesRequest } from '@/types/SearchEmployeesRequest';
 import { EmployeeUser } from '@/types/EmployeeUser';
 
-// Despliegue: se deja comentada para usarla más adelante.
-// const BASE_URL = "https://credit-saas-gateway.onrender.com/authorizer";
-const BASE_URL = "http://localhost:4000/authorizer";
+const BASE_URL = "https://credit-saas-gateway.onrender.com/authorizer";
+// const BASE_URL = "http://localhost:4000/authorizer";
 
 interface AuthStoreState {
     token: string,

@@ -17,8 +17,8 @@ export interface AccountInformacion {
 }
 
 export interface CreatedRangeDate {
-    endDate?:   string;
-    startDate?: string;
+    endDate?:   number;
+    startDate?: number;
 }
 
 export interface Pagination {

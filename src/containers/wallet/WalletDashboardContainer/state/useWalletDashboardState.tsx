@@ -199,10 +199,11 @@ const useWalletDashboardState = () => {
           walletId,
           accountNumber,
         },
+       //ahora se maneja como number
         createdRangeDate: currentFilter.dateRange.range
           ? {
-              startDate: currentFilter.dateRange.range.startDate,
-              endDate: currentFilter.dateRange.range.endDate,
+              startDate: new Date(currentFilter.dateRange.range.startDate).getTime(),
+              endDate: new Date(currentFilter.dateRange.range.endDate).getTime(),
             }
           : undefined,
         transactionType: currentFilter.movimientos.length > 0 ? currentFilter.movimientos : undefined,

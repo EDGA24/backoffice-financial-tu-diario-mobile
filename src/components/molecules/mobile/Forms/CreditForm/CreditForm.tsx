@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Box, Typography } from '@mui/material';
 import type { Control, FieldErrors, FieldValues } from 'react-hook-form';
 
@@ -8,25 +8,13 @@ import type { Credits } from '@/types/Credits';
 import ChargeRulesAutocompleteField, {
   type ChargeRuleOption,
 } from '../../ChargeRulesAutocompleteField/ChargeRulesAutocompleteField';
+import { useAuthStore } from '@/stores/auth.store';
+import { ChargeFrequencyEnum } from '@/shared/constants/ChargeFrequencyEnum';
 
-const CHARGE_RULES_OPTIONS: ChargeRuleOption[] = [
-  {
-    optionId: 'daily-standard',
-    label: 'Diario · 20 pagos ',
-    chargeFrequency: 'DAILY',
-    chargePeriods: 20,
-    renovationPeriod: 0,
-    comissionRate: 5,
-  },
-  {
-    optionId: 'weekly-standard',
-    label: 'Semanal · 12 pagos ',
-    chargeFrequency: 'WEEKLY',
-    chargePeriods: 12,
-    renovationPeriod: 0,
-    comissionRate: 5,
-  },
-];
+const FREQUENCY_LABELS: Record<string, string> = {
+  [ChargeFrequencyEnum.DAILY]: 'Diario',
+  [ChargeFrequencyEnum.WEEKLY]: 'Semanal',
+};
 
 export interface CreditFormProps {
   control: Control<FieldValues | any, object>;
@@ -35,8 +23,26 @@ export interface CreditFormProps {
 }
 
 export const CreditForm: React.FC<CreditFormProps> = ({ control, errors, setValue }) => {
+  const ChargeRules = useAuthStore((state) => state.user?.creditorCompanyInfo?.chargeRules ?? []);
+
+  const chargeRulesOptions: ChargeRuleOption[] = useMemo(
+    () =>
+      ChargeRules.map((rule, index) => {
+        const frequencyLabel = FREQUENCY_LABELS[rule.chargeFrequency ?? ''] ?? rule.chargeFrequency ?? '';
+        return {
+          optionId: rule.chargeFrequency ?? `charge-rule-${index}`,
+          label: `${frequencyLabel} · ${rule.chargePeriods ?? 0} pagos`,
+          chargeFrequency: rule.chargeFrequency,
+          chargePeriods: rule.chargePeriods,
+          renovationPeriod: rule.renovationPeriod,
+          comissionRate: rule.comissionRate,
+        };
+      }),
+    [ChargeRules]
+  );
+
   const handleSelectChargeRules = (optionId: string | undefined) => {
-    const option = CHARGE_RULES_OPTIONS.find((item) => item.optionId === optionId);
+    const option = chargeRulesOptions.find((item) => item.optionId === optionId);
     if (!option) return;
 
     setValue('chargeRules.chargeFrequency', option.chargeFrequency);
@@ -55,7 +61,7 @@ export const CreditForm: React.FC<CreditFormProps> = ({ control, errors, setValu
         name="selectedChargeRulesId"
         control={control}
         errors={errors}
-        options={CHARGE_RULES_OPTIONS}
+        options={chargeRulesOptions}
         chargeRulesNamePrefix="chargeRules"
         onSelectOption={handleSelectChargeRules}
         required

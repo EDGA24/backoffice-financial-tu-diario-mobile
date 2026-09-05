@@ -14,9 +14,8 @@ import { GetWalletRequest } from '@/types/GetWalletRequest';
 import { WalletTable } from '@/types/WalletTable';
 import { GetCreditTotalsRequest, GetCreditTotalsResponse } from '@/types/GetCreditTotalsRequest';
 
-// Despliegue: se deja comentada para usarla más adelante.
-// const BASE_URL = "https://credit-saas-gateway.onrender.com/credits";
-const BASE_URL = "http://localhost:4001/credits";
+const BASE_URL = "https://credit-saas-gateway.onrender.com/credits";
+// const BASE_URL = "http://localhost:4001/credits";
 
 interface CreditStoreState {
     creditsData: {

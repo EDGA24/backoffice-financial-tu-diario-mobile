@@ -4,6 +4,15 @@ export interface LoginResponseCreditorCompanyInfo {
     socialReason: string;
     phoneNumber:  string;
     email:        string;
+    chargeRules?: LoginResponseChargeRules[];
+}
+
+export interface LoginResponseChargeRules {
+    chargeFrequency?:  string;
+    chargePeriods?:    number;
+    chargeDay?:        string;
+    renovationPeriod?: number;
+    comissionRate?:    number;
 }
 
 export interface LoginResponseUser {

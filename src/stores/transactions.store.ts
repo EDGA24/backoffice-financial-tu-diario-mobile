@@ -9,9 +9,8 @@ import { SearchTransactionsByUserRequest } from '@/types/SearchTransactionsByUse
 import { TransactionTable } from '@/types/TransactionTable';
 import { Transactions } from '@/types/Transactions';
 
-// Despliegue: se deja comentada para usarla más adelante.
-// const BASE_URL = "https://credit-saas-gateway.onrender.com/transactions";
-const BASE_URL = "http://localhost:4003/transactions";
+const BASE_URL = "https://credit-saas-gateway.onrender.com/transactions";
+// const BASE_URL = "http://localhost:4003/transactions";
 
 interface TransactionStoreState {
     transactionsData: {

@@ -158,6 +158,11 @@ const useCreditsDashboardState = () => {
 
   const { creditsData, searchCreditsByEmployeeData, createPayment, getCreditTotals } = useCreditStore();
   const creditorCompanyId = useAuthStore((state) => state.user?.creditorCompanyId ?? '');
+  // Día de corte semanal configurado por la empresa acreedora (creditorCompanyInfo.chargeRules) —
+  // se usa para calcular el rango de fechas real en vez de asumir siempre lunes.
+  const weeklyChargeDay = useAuthStore((state) =>
+    state.user?.creditorCompanyInfo?.chargeRules?.find((rule) => rule.chargeFrequency === ChargeFrequencyEnum.WEEKLY)?.chargeDay
+  );
   const employeeOptions = useEmployeeOptions();
   const [activeNav, setActiveNav] = useState<NavKey>('newcredits');
   const [currentPage, setCurrentPage] = useState(1);
@@ -190,7 +195,7 @@ const useCreditsDashboardState = () => {
   };
 
   const fetchTotals = async (employeeId: string | null, chargeFrequency: string[]) => {
-    const { fromTimestamp, toTimestamp } = resolveChargeFrequencyDateRange(chargeFrequency);
+    const { fromTimestamp, toTimestamp } = resolveChargeFrequencyDateRange(chargeFrequency, weeklyChargeDay);
     const totals = await getCreditTotals({
       fromTimestamp,
       toTimestamp,
