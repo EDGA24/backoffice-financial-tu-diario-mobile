@@ -41,6 +41,8 @@ const CreditsCustomerContainer = () => {
             name="selectedCustomerId"
             value={customerSelector.value}
             onChange={customerSelector.onChange}
+            onInputChange={customerSelector.onInputChange}
+            loading={customerSelector.loading}
             options={customerSelector.options}
             label="¿Ya existe el cliente? Selecciónalo aquí"
           />

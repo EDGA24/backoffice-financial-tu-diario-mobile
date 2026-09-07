@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { IFormProps } from '@/shared/interfaces/IFormProps';
@@ -6,15 +6,20 @@ import type { Customers } from '@/types/Customers';
 import type { Credits } from '@/types/Credits';
 import type { LoanSummary } from '@/components/molecules/mobile/DashboardContacTable/DashboardContacTable';
 import { get } from 'lodash';
-import { useCreditStore } from '@/stores/credits.store';
+import { useCreditStore, type CustomerSearchResult } from '@/stores/credits.store';
 import { useAuthStore } from '@/stores/auth.store';
 import { NAV_ROUTES } from '@/shared/constants/navRoutes';
 import type { TransactionOverlayStatus } from '@/components/molecules/mobile/TransactionStatusOverlay/TransactionStatusOverlay';
 
+// Cuánto espera el autocomplete de clientes después de la última tecla antes
+// de buscar en el backend (evita un request por cada letra).
+const CUSTOMER_SEARCH_DEBOUNCE_MS = 300;
+// El backend no aplica tope propio en este endpoint — este es el único límite.
+const CUSTOMER_SEARCH_LIMIT = 20;
 // Cuánto se queda visible el aviso de "éxito" antes de navegar.
 const SUCCESS_OVERLAY_DURATION_MS = 1600;
 // Mínimo que se muestra el "cargando" aunque el backend responda al instante.
-const MIN_LOADING_OVERLAY_MS = 900;
+const MIN_LOADING_OVERLAY_MS = 500;
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -44,6 +49,8 @@ export interface IUseCreditsCustomerContainerState {
     customerSelector: {
         value: string;
         onChange: (value: string | undefined) => void;
+        onInputChange: (text: string) => void;
+        loading: boolean;
         options: { optionId: string; label: string }[];
         summary?: CustomerSummary;
     };
@@ -55,67 +62,17 @@ export interface IUseCreditsCustomerContainerState {
     };
 }
 
-const CUSTOMER_OPTIONS: CustomerSummary[] = [
-    {
-        optionId: '1',
-        name: 'Maria Veronica',
-        lastName: 'Perez Patistan',
-        address: 'Calle 5 de Mayo #123, Col. Centro',
-        status: 'ACTIVO',
-        phoneNumber: '9611234567',
-        threeWordsUbication: 'lider.acaso.rima',
-    },
-    {
-        optionId: '2',
-        name: 'Leticia',
-        lastName: 'Gomez Torres',
-        address: 'Av. Insurgentes #456, Col. Reforma',
-        status: 'ATRASADO',
-        phoneNumber: '9619876543',
-        threeWordsUbication: 'techo.rueda.faro',
-    },
-    {
-        optionId: '3',
-        name: 'Maricruz',
-        lastName: 'Nucamendi Perez',
-        address: 'Calle Juárez #789, Col. Moderna',
-        status: 'ACTIVO',
-        phoneNumber: '9615551234',
-        threeWordsUbication: 'nube.canto.rio',
-    },
-    {
-        optionId: '4',
-        name: 'Carlos Mario',
-        lastName: 'Simuta Vicente',
-        address: 'Av. Central #321, Col. Norte',
-        status: 'ACTIVO',
-        phoneNumber: '9612223333',
-        threeWordsUbication: 'sol.montana.lago',
-    },
-    {
-        optionId: '5',
-        name: 'Jose Alfredo',
-        lastName: 'Hernandez Gomez',
-        address: 'Calle Hidalgo #654, Col. Sur',
-        status: 'ATRASADO',
-        phoneNumber: '9614445555',
-        threeWordsUbication: 'piedra.viento.mar',
-    },
-    {
-        optionId: '6',
-        name: 'Teresa de jesus',
-        lastName: 'de la Cruz Cruz',
-        address: 'Av. Libertad #987, Col. Este',
-        status: 'ACTIVO',
-        phoneNumber: '9616667777',
-        threeWordsUbication: 'estrella.rio.campo',
-    },
-];
-
-const CUSTOMER_AUTOCOMPLETE_OPTIONS = CUSTOMER_OPTIONS.map((customer) => ({
-    optionId: customer.optionId,
-    label: `${customer.name} ${customer.lastName}`,
-}));
+// Convierte un resultado real del backend (CustomerSearchResult) al shape
+// que ya usa el resto de la pantalla (CustomerSummaryCard, etc.).
+const mapCustomerResultToSummary = (customer: CustomerSearchResult): CustomerSummary => ({
+    optionId: customer._id,
+    name: get(customer, 'contact.name', ''),
+    lastName: get(customer, 'contact.lastName', ''),
+    address: get(customer, 'contact.address', ''),
+    status: customer.status ?? '',
+    phoneNumber: get(customer, 'contact.phoneNumber', ''),
+    threeWordsUbication: customer.threeWordsUbication ?? '',
+});
 
 export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainerState => {
     const location = useLocation();
@@ -127,7 +84,13 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
     const [loadingSave, setLoadingSave] = useState(false);
     const [creditOverlayStatus, setCreditOverlayStatus] = useState<TransactionOverlayStatus>(null);
 
-    const { createCredit } = useCreditStore();
+    // Autocomplete de "cliente existente" — resultados reales del cobrador
+    // autenticado, buscados con debounce mientras se teclea.
+    const [customerSearchResults, setCustomerSearchResults] = useState<CustomerSearchResult[]>([]);
+    const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
+    const customerSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const { createCredit, searchCustomersByEmployee } = useCreditStore();
     const creditorCompanyId = useAuthStore((state) => state.user?.creditorCompanyId ?? '');
     const userId = useAuthStore((state) => state.user?._id ?? '');
 
@@ -181,6 +144,29 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
 
     const handleChangeSelectedCustomer = (value: string | undefined) => {
         setSelectedCustomerId(value ?? '');
+    };
+
+    // Búsqueda en vivo del autocomplete de clientes — espera CUSTOMER_SEARCH_DEBOUNCE_MS
+    // desde la última tecla antes de consultar el backend (solo trae los
+    // clientes del cobrador autenticado, topado a CUSTOMER_SEARCH_LIMIT).
+    const handleSearchCustomerInput = (text: string) => {
+        if (customerSearchDebounceRef.current) clearTimeout(customerSearchDebounceRef.current);
+
+        customerSearchDebounceRef.current = setTimeout(async () => {
+            setCustomerSearchLoading(true);
+            try {
+                const { records } = await searchCustomersByEmployee({
+                    filtersItems: { generalSearch: text.trim() || undefined },
+                    pagination: { limit: CUSTOMER_SEARCH_LIMIT, pageNumber: 0 },
+                });
+                setCustomerSearchResults(records);
+            } catch (error) {
+                console.error('Error al buscar clientes:', error);
+                setCustomerSearchResults([]);
+            } finally {
+                setCustomerSearchLoading(false);
+            }
+        }, CUSTOMER_SEARCH_DEBOUNCE_MS);
     };
 
     const handleOnSaveCredit = async () => {
@@ -238,7 +224,7 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
     };
 
     // En renovación el cliente ya viene definido por el crédito que se está
-    // renovando: no se elige de la lista mock, y no se vuelve a capturar.
+    // renovando: no se elige del autocomplete, y no se vuelve a capturar.
     const renewalCustomerSummary: CustomerSummary | undefined = renewalLoan
         ? {
             optionId: renewalLoan.customerId ?? '',
@@ -252,9 +238,10 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
         : undefined;
 
     const isExistingCustomer = isRenewal || Boolean(selectedCustomerId);
+    const selectedCustomerFromSearch = customerSearchResults.find((customer) => customer._id === selectedCustomerId);
     const selectedCustomerSummary = isRenewal
         ? renewalCustomerSummary
-        : CUSTOMER_OPTIONS.find((customer) => customer.optionId === selectedCustomerId);
+        : (selectedCustomerFromSearch ? mapCustomerResultToSummary(selectedCustomerFromSearch) : undefined);
 
     return {
         loadingSave,
@@ -266,7 +253,12 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
         customerSelector: {
             value: selectedCustomerId,
             onChange: handleChangeSelectedCustomer,
-            options: CUSTOMER_AUTOCOMPLETE_OPTIONS,
+            onInputChange: handleSearchCustomerInput,
+            loading: customerSearchLoading,
+            options: customerSearchResults.map((customer) => ({
+                optionId: customer._id,
+                label: `${get(customer, 'contact.name', '')} ${get(customer, 'contact.lastName', '')}`.trim(),
+            })),
             summary: selectedCustomerSummary,
         },
         customer: {

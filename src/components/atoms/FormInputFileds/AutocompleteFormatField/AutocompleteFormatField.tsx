@@ -1,7 +1,7 @@
 import React from 'react';
 import { Controller } from 'react-hook-form';
 import type { FieldErrors } from 'react-hook-form';
-import { Autocomplete, TextField } from '@mui/material';
+import { Autocomplete, CircularProgress, TextField } from '@mui/material';
 import { get } from 'lodash';
 
 export interface AutocompleteOption {
@@ -23,6 +23,10 @@ export interface AutocompleteFormatFieldProps {
   sx?: {};
   label?: string;
   onChangeExtra?: (optionId: string | undefined) => void;
+  // Para autocompletes con búsqueda en vivo contra el backend (ej. debounce +
+  // fetch): se dispara con cada tecleo del texto, no con la selección.
+  onInputChange?: (text: string) => void;
+  loading?: boolean;
 }
 
 const mobileFieldSx = {
@@ -50,6 +54,8 @@ const AutocompleteFormatField: React.FC<AutocompleteFormatFieldProps> = ({
   sx = {},
   label,
   onChangeExtra,
+  onInputChange,
+  loading = false,
 }) => {
   // Modo directo: no hay control, se usa value/onChange tal cual
   if (!control) {
@@ -65,9 +71,34 @@ const AutocompleteFormatField: React.FC<AutocompleteFormatFieldProps> = ({
           onChange?.(optionId);
           onChangeExtra?.(optionId);
         }}
+        // Con búsqueda en vivo (onInputChange) el filtrado ya lo hace el
+        // backend — si dejamos el filtro por defecto de MUI, puede descartar
+        // opciones válidas que no calcen letra por letra con lo tecleado.
+        {...(onInputChange ? { filterOptions: (opts: AutocompleteOption[]) => opts } : {})}
+        onInputChange={onInputChange ? (_, newInputValue, reason) => {
+          if (reason === 'input') onInputChange(newInputValue);
+        } : undefined}
+        loading={loading}
         sx={{ ...mobileFieldSx, ...sx }}
         renderInput={(params) => (
-          <TextField {...params} name={name} label={label} required={required} />
+          <TextField
+            {...params}
+            name={name}
+            label={label}
+            required={required}
+            slotProps={{
+              ...params.slotProps,
+              input: {
+                ...params.slotProps.input,
+                endAdornment: (
+                  <>
+                    {loading ? <CircularProgress color="inherit" size={16} /> : null}
+                    {params.slotProps.input.endAdornment}
+                  </>
+                ),
+              },
+            }}
+          />
         )}
       />
     );

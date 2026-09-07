@@ -8,14 +8,21 @@ import { CreditTable } from '@/types/CreditTable';
 import { Credits } from '@/types/Credits';
 import { Customers } from '@/types/Customers';
 import { SearchCreditsByEmployeeRequest } from '@/types/SearchCreditsByEmployeeRequest';
+import { SearchCustomersByEmployeeRequest } from '@/types/SearchCustomersByEmployeeRequest';
 import { GetPaymentRequest } from '@/types/GetPaymentRequest';
 import { PaymentTable } from '@/types/PaymentTable';
 import { GetWalletRequest } from '@/types/GetWalletRequest';
 import { WalletTable } from '@/types/WalletTable';
 import { GetCreditTotalsRequest, GetCreditTotalsResponse } from '@/types/GetCreditTotalsRequest';
 
-const BASE_URL = "https://credit-saas-gateway.onrender.com/credits";
-// const BASE_URL = "http://localhost:4001/credits";
+// const BASE_URL = "https://credit-saas-gateway.onrender.com/credits";
+const BASE_URL = "http://localhost:4001/credits";
+
+// Resultado del autocomplete de clientes — Customers no trae _id (es el
+// shape para crear un cliente), este sí lo necesita para poder seleccionarlo.
+export interface CustomerSearchResult extends Customers {
+    _id: string;
+}
 
 interface CreditStoreState {
     creditsData: {
@@ -29,6 +36,7 @@ interface CreditStoreState {
         entityName: DashboardTableCatalogEnum
     }) => void,
     searchCreditsByEmployeeData: (request: SearchCreditsByEmployeeRequest) => Promise<void>,
+    searchCustomersByEmployee: (request: SearchCustomersByEmployeeRequest) => Promise<{ total: number, records: CustomerSearchResult[] }>,
     createCredit: (request: { customer?: Customers, credit: Credits }) => Promise<boolean>,
     createPayment: (request: { creditId: string, customerId: string, total: number }) => Promise<boolean>,
     getPaymentByCredit: (request: GetPaymentRequest) => Promise<{ total: number, records: PaymentTable[] }>,
@@ -50,6 +58,13 @@ export const useCreditStore = create<CreditStoreState>()(
                         entityName: DashboardTableCatalogEnum.credits
                     }
                 }))
+            },
+            searchCustomersByEmployee: async (request: SearchCustomersByEmployeeRequest) => {
+                const response = await axios.post<{ total: number, records: CustomerSearchResult[] }>(`${BASE_URL}/searchCustomersByEmployee`, request);
+                return {
+                    total: get(response.data, "data.total", 0),
+                    records: get(response.data, "data.records", [])
+                };
             },
             createCredit: async (request: { customer?: Customers, credit: Credits }) => {
                 const response = await axios.post<{ data: boolean }>(`${BASE_URL}/createCreditsByEmployee`, request);
