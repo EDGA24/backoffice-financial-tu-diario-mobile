@@ -2,6 +2,9 @@ export interface Credits {
     admissionDate?:            number;
     chargeRules?:              ChargeRules;
     created?:                  number;
+    creationStatus?:           CreationStatus;
+    // ID del crédito original que se está renovando. Solo se manda en renovaciones.
+    creditId?:                 string;
     creditAmount?:             number;
     creditAmountWithMoratory?: number;
     creditorCompanyId:         string;
@@ -22,4 +25,9 @@ export interface ChargeRules {
     chargePeriods?:    number;
     comissionRate?:    number;
     renovationPeriod?: number;
+}
+
+export enum CreationStatus {
+    New = "new",
+    Renewed = "renewed",
 }

@@ -3,7 +3,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { IFormProps } from '@/shared/interfaces/IFormProps';
 import type { Customers } from '@/types/Customers';
-import type { Credits } from '@/types/Credits';
+import { CreationStatus, type Credits } from '@/types/Credits';
 import type { LoanSummary } from '@/components/molecules/mobile/DashboardContacTable/DashboardContacTable';
 import { get } from 'lodash';
 import { useCreditStore, type CustomerSearchResult } from '@/stores/credits.store';
@@ -185,6 +185,9 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
                 customerId: renewalLoan?.customerId || selectedCustomerId || get(creditFormState, 'customerId', ''),
                 transactionId: get(creditFormState, 'transactionId', ''),
                 userId: get(creditFormState, 'userId', userId),
+                creationStatus: isRenewal ? CreationStatus.Renewed : CreationStatus.New,
+                // Solo aplica en renovación: ID del crédito que se está renovando.
+                ...(isRenewal ? { creditId: renewalLoan?.creditId } : {}),
                 admissionDate: get(creditFormState, 'admissionDate'),
                 created: get(creditFormState, 'created', Date.now()),
                 creditAmount: get(creditFormState, 'creditAmount', 0),
