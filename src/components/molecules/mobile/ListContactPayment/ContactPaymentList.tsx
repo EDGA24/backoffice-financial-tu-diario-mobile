@@ -78,6 +78,11 @@ export default function ContactPaymentList({
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [menuIndex, setMenuIndex] = useState<number | null>(null);
   const [loadingHistorialIndex, setLoadingHistorialIndex] = useState<number | null>(null);
+  // Pagos reales por crédito para la tarjeta expandida (progreso/próximo pago),
+  // separado del historial del modal del ojo — se cachea por creditId para no
+  // volver a pedirlo si ya se expandió antes.
+  const [realPaymentsByCreditId, setRealPaymentsByCreditId] = useState<Record<string, PaymentTable[]>>({});
+  const [loadingExpandIndex, setLoadingExpandIndex] = useState<number | null>(null);
 
   const handleAbrirMenuAcciones = (
     e: React.MouseEvent<HTMLElement>,
@@ -135,8 +140,22 @@ export default function ContactPaymentList({
     });
   };
 
-  const toggleExpand = (key: string) => {
-    setExpandedKey((prev) => (prev === key ? null : key));
+  const toggleExpand = async (key: string, loan: LoanSummary, index: number) => {
+    const seVaAExpandir = expandedKey !== key;
+    setExpandedKey(seVaAExpandir ? key : null);
+
+    if (!seVaAExpandir || !loan.creditId || realPaymentsByCreditId[loan.creditId]) return;
+
+    try {
+      setLoadingExpandIndex(index);
+      const { records } = await getPaymentByCredit({ creditId: loan.creditId });
+      setRealPaymentsByCreditId((prev) => ({ ...prev, [loan.creditId as string]: records }));
+    } catch (error) {
+      console.error('Error al obtener pagos reales del crédito:', error);
+      setRealPaymentsByCreditId((prev) => ({ ...prev, [loan.creditId as string]: [] }));
+    } finally {
+      setLoadingExpandIndex(null);
+    }
   };
 
   const handleVerHistorial = async (e: React.MouseEvent, loan: LoanSummary, index: number) => {
@@ -214,7 +233,7 @@ export default function ContactPaymentList({
                     de "Pagar" (Fila 2) nunca queda dentro de la zona clicable
                     y no hay forma de que un clic ahí también expanda el card. */}
                 <Box
-                  onClick={() => toggleExpand(key)}
+                  onClick={() => toggleExpand(key, loan, i)}
                   sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, cursor: 'pointer' }}
                 >
                   <Avatar size="medium">{loan.initials}</Avatar>
@@ -341,7 +360,11 @@ export default function ContactPaymentList({
 
               <Collapse in={estaExpandido} timeout={250} unmountOnExit>
                 <Box sx={{ px: 2, pb: 2, pt: 0 }}>
-                  <LoanExpandedDetails loan={loan} />
+                  <LoanExpandedDetails
+                    loan={loan}
+                    realPayments={loan.creditId ? realPaymentsByCreditId[loan.creditId] : undefined}
+                    loadingRealPayments={loadingExpandIndex === i}
+                  />
                 </Box>
               </Collapse>
             </Card>

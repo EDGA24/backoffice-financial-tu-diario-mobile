@@ -47,16 +47,24 @@ const WalletBalanceCard: React.FC<WalletBalanceCardProps> = ({
           `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: 500 }}>
-          {balanceLabel}
+      <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: 500 }}>
+        {balanceLabel}
+      </Typography>
+      {accountNumber && (
+        // En una línea aparte (no junto a balanceLabel): el número de cuenta
+        // real (UUID, 32 caracteres) no cabe al lado sin encimarse.
+        <Typography
+          sx={{
+            color: 'rgba(255,255,255,0.6)',
+            fontSize: 11,
+            fontWeight: 500,
+            mt: 0.25,
+            wordBreak: 'break-all',
+          }}
+        >
+          Cuenta {accountNumber}
         </Typography>
-        {accountNumber && (
-          <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, fontWeight: 500 }}>
-            Cuenta {accountNumber}
-          </Typography>
-        )}
-      </Box>
+      )}
 
       <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: 32, mt: 0.5, lineHeight: 1.1 }}>
         {balance}

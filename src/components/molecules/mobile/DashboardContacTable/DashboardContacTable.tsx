@@ -34,6 +34,11 @@ export interface LoanSummary {
   address?: string;
   threeWordsUbication?: string;
   fixedCharge?: number;
+  // Para calcular el progreso real de pagos (LoanExpandedDetails) contra
+  // getPaymentByCredit, en vez de simular a partir del tiempo transcurrido.
+  chargePeriods?: number;
+  chargeFrequency?: string;
+  startDateChargeConfig?: string;
   // 'pending' pinta la tarjeta de amarillo: la transacción de desembolso del
   // crédito o el último pago real siguen sin aprobar (credit.transactionStatus /
   // lastPayment.transactionStatus === 'pending'), o hay un pago recién enviado

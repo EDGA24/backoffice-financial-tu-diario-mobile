@@ -32,6 +32,7 @@ export interface LastPayment {
 export interface ChargeRules {
     chargeFrequency:  string;
     chargePeriods:    number;
+    chargeDay?:       string;
     comissionRate:    number;
     renovationPeriod: number;
 }
@@ -48,9 +49,11 @@ export interface EmployeeBasicInfo {
     userId:      string;
 }
 
+// Coincide con el enum real del backend (CreditStatusEnum.ts): minúsculas,
+// guion bajo, y "reestructured" con doble "e" (no "restructured").
 export enum Status {
-    ChargeProcess = "CHARGE-PROCESS",
-    Paid = "PAID",
-    Restructured = "RESTRUCTURED",
-    SlowPay = "SLOW-PAY",
+    ChargeProcess = "charge_process",
+    Paid = "paid",
+    Restructured = "reestructured",
+    SlowPay = "slow_pay",
 }

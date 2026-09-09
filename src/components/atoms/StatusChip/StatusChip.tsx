@@ -2,8 +2,9 @@ import React from 'react';
 import { Chip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 
-// Coincide con el enum real del schema de Mongoose (creditsSchema.status / transactionsSchema.status)
-export type LoanStatus = 'CHARGE-PROCESS' | 'SLOW-PAY' | 'PAID' | 'RESTRUCTURED';
+// Coincide con el enum real del backend (CreditStatusEnum.ts / TransactionStatusEnum.ts):
+// minúsculas, guion bajo, y "reestructured" con doble "e" (no "restructured").
+export type LoanStatus = 'charge_process' | 'slow_pay' | 'paid' | 'reestructured';
 
 export interface StatusChipProps {
   status: LoanStatus;
@@ -13,22 +14,22 @@ const StatusChip: React.FC<StatusChipProps> = ({ status }) => {
   const theme = useTheme();
 
   const map: Record<LoanStatus, { label: string; color: string; bg: string }> = {
-    'CHARGE-PROCESS': {
+    charge_process: {
       label: 'En proceso',
       color: theme.palette.info.dark,
       bg: theme.palette.info.light + '33',
     },
-    'SLOW-PAY': {
+    slow_pay: {
       label: 'Pago lento',
       color: theme.palette.warning.dark,
       bg: theme.palette.warning.light + '33',
     },
-    PAID: {
+    paid: {
       label: 'Pagado',
       color: theme.palette.success.dark,
       bg: theme.palette.success.light + '33',
     },
-    RESTRUCTURED: {
+    reestructured: {
       label: 'Reestructurado',
       color: theme.palette.error.dark,
       bg: theme.palette.error.light + '33',

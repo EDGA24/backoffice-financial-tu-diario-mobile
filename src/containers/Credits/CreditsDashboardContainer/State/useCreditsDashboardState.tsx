@@ -50,11 +50,7 @@ const getInitials = (fullName: string) =>
     .map((p) => p[0]?.toUpperCase())
     .join('');
 
-// Simula el historial de pagos de un crédito a partir de su avance en el
-// tiempo (admissionDate -> expirationDate) MÁS los pagos que el usuario
-// registre a mano con el modal de "Pagar" (pagosManuales: los montos
-// capturados, en orden), ya que aún no existe backend que reporte los
-// pagos reales.
+
 const buildSimulatedHistorial = (credit: CreditTable, pagosManuales: number[]): PaymentRecord[] => {
   const totalPagos = credit.chargeRules?.chargePeriods || DEFAULT_SIMULATED_PAYMENTS;
   const inicio = new Date(credit.admissionDate).getTime();
@@ -78,27 +74,23 @@ const buildSimulatedHistorial = (credit: CreditTable, pagosManuales: number[]): 
   });
 };
 
-// Duración del periodo de cobro vigente según la frecuencia del crédito —
-// mismo criterio que ya usa charge_frequency_date_range_catalog.ts (semanal =
-// 7 días desde el último lunes, diario = el día en curso). Un hardcode fijo
-// de 7 días para todos los créditos era incorrecto para daily: casi
-// cualquier pago hubiera caído "a tiempo".
-const ON_TIME_WINDOW_DAYS_BY_FREQUENCY: Record<string, number> = {
-  [ChargeFrequencyEnum.DAILY]: 1,
-  [ChargeFrequencyEnum.WEEKLY]: 7,
-};
-
 // Un pago se considera "a tiempo" si el último pago real del crédito
 // (lastPayment, viene del backend) cayó dentro de la ventana del periodo de
-// cobro vigente, contada desde startDateChargeConfig.
+// cobro VIGENTE (la semana/día actual, calculado contra "hoy" con el mismo
+// helper que ya usa "Créditos Semanal" para sus totales) — no contra
+// startDateChargeConfig, que se fija una sola vez al crear el crédito y
+// nunca se actualiza, por lo que un pago de hace semanas seguía marcando
+// "a tiempo" para siempre.
 const esPagoATiempo = (credit: CreditTable): boolean => {
   const fechaUltimoPago = credit.lastPayment?.createdAt;
-  if (!credit.startDateChargeConfig || !fechaUltimoPago) return false;
-  const ventanaDias = ON_TIME_WINDOW_DAYS_BY_FREQUENCY[credit.chargeRules?.chargeFrequency ?? ''] ?? 7;
-  const inicioPeriodo = new Date(credit.startDateChargeConfig).getTime();
-  const limite = inicioPeriodo + ventanaDias * 24 * 60 * 60 * 1000;
+  if (!fechaUltimoPago) return false;
+  const chargeFrequency = credit.chargeRules?.chargeFrequency ?? ChargeFrequencyEnum.WEEKLY;
+  const { fromTimestamp, toTimestamp } = resolveChargeFrequencyDateRange(
+    [chargeFrequency],
+    credit.chargeRules?.chargeDay
+  );
   const fechaPago = new Date(fechaUltimoPago).getTime();
-  return fechaPago >= inicioPeriodo && fechaPago <= limite;
+  return fechaPago >= fromTimestamp && fechaPago <= toTimestamp;
 };
 
 const mapCreditToLoanSummary = (
@@ -139,6 +131,13 @@ const mapCreditToLoanSummary = (
     threeWordsUbication: ubicacionCliente,
     fixedCharge: credit.fixedCharge,
     historialPagos: buildSimulatedHistorial(credit, pagosManuales),
+    // Para el progreso real de pagos en la tarjeta expandida (LoanExpandedDetails),
+    // calculado contra getPaymentByCredit 
+    chargePeriods: credit.chargeRules?.chargePeriods,
+    chargeFrequency: credit.chargeRules?.chargeFrequency,
+    startDateChargeConfig: credit.startDateChargeConfig
+      ? new Date(credit.startDateChargeConfig).toISOString()
+      : undefined,
     // Prioridad: amarillo si la transacción de DESEMBOLSO del crédito sigue
     // pendiente de aprobación (nace así al crearlo, sin necesidad de ningún
     // pago todavía), o si hay un pago recién enviado en esta sesión (optimista,

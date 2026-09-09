@@ -1,12 +1,20 @@
-import { Box, Divider, Stack, Typography } from '@mui/material';
+import { Box, CircularProgress, Divider, Stack, Typography } from '@mui/material';
 import PaymentsRoundedIcon from '@mui/icons-material/PaymentsRounded';
 import EventRoundedIcon from '@mui/icons-material/EventRounded';
 import AccountBalanceWalletRoundedIcon from '@mui/icons-material/AccountBalanceWalletRounded';
 import ProgressBar from '@/components/atoms/ProgressBar/ProgressBar';
 import type { LoanSummary } from '../DashboardContacTable/DashboardContacTable';
+import type { PaymentTable } from '@/types/PaymentTable';
+
+const formatDate = (date: Date) =>
+  date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: '2-digit' });
 
 export interface LoanExpandedDetailsProps {
   loan: LoanSummary;
+  // Pagos reales del crédito (getPaymentByCredit) — undefined mientras cargan,
+  // [] si ya se confirmó que no tiene ninguno todavía.
+  realPayments?: PaymentTable[];
+  loadingRealPayments?: boolean;
 }
 
 function InfoRow({
@@ -46,20 +54,31 @@ function InfoRow({
   );
 }
 
-export default function LoanExpandedDetails({ loan }: LoanExpandedDetailsProps) {
-  const historial = loan.historialPagos ?? [];
-
-  // Progreso y próximo pago siguen derivados del historial simulado
-  const totalPagos = historial.length;
-  const pagosRealizados = historial.filter((p) => p.status === 'pagado').length;
+export default function LoanExpandedDetails({ loan, realPayments, loadingRealPayments }: LoanExpandedDetailsProps) {
+  // Progreso: solo cuenta pagos reales donde SÍ entró dinero (total > 0) — un
+  // registro en $0 es una falta (semana reportada sin pago), no un avance.
+  // Contar cualquier registro (incluidas las faltas) hacía que un cliente que
+  // nunca ha pagado nada apareciera con progreso en la barra.
+  const totalPagos = loan.chargePeriods ?? 0;
+  const pagosConDinero = realPayments?.filter((p) => (p.total ?? 0) > 0) ?? [];
+  const pagosRealizados = pagosConDinero.length;
   const progresoPagos = totalPagos > 0 ? (pagosRealizados / totalPagos) * 100 : 0;
 
-  // El próximo pago es el primer registro que no está pagado
-  const proximoPago = historial.find((p) => p.status !== 'pagado')?.date;
+  // Próximo pago = un periodo después del último REGISTRO de cobro (aunque
+  // haya sido en $0) — el cobrador sigue visitando cada semana según el
+  // calendario, pague o no el cliente; si todavía no hay ningún registro, un
+  // periodo después del inicio del cobro (startDateChargeConfig).
+  const periodDays = loan.chargeFrequency === 'daily' ? 1 : 7;
+  const ultimoRegistro = realPayments && realPayments.length > 0
+    ? [...realPayments].sort((a, b) => new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime()).at(-1)
+    : undefined;
+  const fechaBase = ultimoRegistro?.createdAt ?? loan.startDateChargeConfig;
+  const proximoPago = fechaBase
+    ? formatDate(new Date(new Date(fechaBase).getTime() + periodDays * 24 * 60 * 60 * 1000))
+    : undefined;
 
-  // Monto pagado / por pagar: campos reales del crédito (amountPaid/amountDue),
-  // no derivados del historial simulado. El monto total ya se muestra arriba
-  // (loan.amount) antes de expandir la tarjeta.
+  // Monto pagado / por pagar: campos reales del crédito (amountPaid/amountDue).
+  // El monto total ya se muestra arriba (loan.amount) antes de expandir la tarjeta.
   const montoPagado = loan.amountPaid ?? 0;
   const montoPorPagar = loan.amountDue ?? 0;
 
@@ -67,10 +86,16 @@ export default function LoanExpandedDetails({ loan }: LoanExpandedDetailsProps) 
     <Box sx={{ pt: 1.5, pb: 0.5 }}>
       <Divider sx={{ mb: 2 }} />
 
-      <ProgressBar
-        value={progresoPagos}
-        label={`${pagosRealizados} de ${totalPagos} pagos`}
-      />
+      {loadingRealPayments ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 1 }}>
+          <CircularProgress size={20} />
+        </Box>
+      ) : (
+        <ProgressBar
+          value={progresoPagos}
+          label={`${pagosRealizados} de ${totalPagos} pagos`}
+        />
+      )}
 
       <Stack
         direction="row"
