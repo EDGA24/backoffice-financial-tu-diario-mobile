@@ -9,8 +9,8 @@ import { SearchTransactionsByUserRequest } from '@/types/SearchTransactionsByUse
 import { TransactionTable } from '@/types/TransactionTable';
 import { Transactions } from '@/types/Transactions';
 
- const BASE_URL = "https://credit-saas-gateway.onrender.com/transactions";
-//const BASE_URL = "http://localhost:4003/transactions";
+// const BASE_URL = "https://credit-saas-gateway.onrender.com/transactions";
+const BASE_URL = "http://localhost:4003/transactions";
 
 interface TransactionStoreState {
     transactionsData: {
@@ -54,6 +54,7 @@ export const useTransactionStore = create<TransactionStoreState>()(
                 }))
             },
             createTransactionByEmployee: async (request: Transactions) => {
+                console.log("Transaccionessssssssssssssss",request.total)
                 const response = await axios.post<{ data: boolean }>(`${BASE_URL}/createTransactionByEmployee`, request);
                 return get(response.data, "data", false);
             }

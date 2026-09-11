@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import type { NavKey } from '@/components/organisms/mobile/BottomNavigation/BottomNavigation';
-import type { LoanSummary, PaymentRecord } from '@/components/molecules/mobile/DashboardContacTable/DashboardContacTable';
+import type { LoanSummary } from '@/components/molecules/mobile/DashboardContacTable/DashboardContacTable';
 import { useEmployeeOptions } from '@/hooks/useEmployeeOptions';
 import { useCreditStore } from '@/stores/credits.store';
 import { useAuthStore } from '@/stores/auth.store';
@@ -22,15 +22,7 @@ const CHARGE_FREQUENCY_LABELS: Record<string, string> = {
   [ChargeFrequencyEnum.WEEKLY]: 'Créditos Semanal',
 };
 
-// Umbral para habilitar "Renovar": aún no hay backend que calcule pagos reales,
-// así que el historial se simula a partir del avance en el tiempo del crédito
-// (admissionDate -> expirationDate). Regla acordada: más del 90% liquidado.
-// Se usa porcentaje (no un conteo fijo de pagos) porque el total de pagos
-// varía según la frecuencia del crédito (diario vs semanal).
-const DEFAULT_SIMULATED_PAYMENTS = 12;
-const UMBRAL_PORCENTAJE_LIQUIDADO = 0.9;
 
-// ---------- Helpers de mapeo backend -> LoanSummary ----------
 const formatDate = (date: string | number | Date) =>
   new Date(date).toLocaleDateString('es-MX', {
     day: '2-digit',
@@ -49,30 +41,6 @@ const getInitials = (fullName: string) =>
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase())
     .join('');
-
-
-const buildSimulatedHistorial = (credit: CreditTable, pagosManuales: number[]): PaymentRecord[] => {
-  const totalPagos = credit.chargeRules?.chargePeriods || DEFAULT_SIMULATED_PAYMENTS;
-  const inicio = new Date(credit.admissionDate).getTime();
-  const fin = new Date(credit.expirationDate).getTime();
-  const duracionTotal = fin > inicio ? fin - inicio : 1;
-  const progresoTiempo = Math.min(1, Math.max(0, (Date.now() - inicio) / duracionTotal));
-  const pagosPorTiempo = Math.round(progresoTiempo * totalPagos);
-  const pagosRealizados = Math.min(totalPagos, pagosPorTiempo + pagosManuales.length);
-  const montoPorPagoDefault = (credit.creditAmount ?? 0) / totalPagos;
-
-  return Array.from({ length: totalPagos }, (_, i) => {
-    const esPagoManual = i >= pagosPorTiempo && i < pagosRealizados;
-    const montoManual = esPagoManual ? pagosManuales[i - pagosPorTiempo] : undefined;
-
-    return {
-      id: `${credit._id}-pago-${i + 1}`,
-      date: formatDate(new Date(inicio + ((i + 1) / totalPagos) * duracionTotal)),
-      amount: montoManual ?? montoPorPagoDefault,
-      status: i < pagosRealizados ? 'pagado' : 'pendiente',
-    };
-  });
-};
 
 // Un pago se considera "a tiempo" si el último pago real del crédito
 // (lastPayment, viene del backend) cayó dentro de la ventana del periodo de
@@ -95,7 +63,6 @@ const esPagoATiempo = (credit: CreditTable): boolean => {
 
 const mapCreditToLoanSummary = (
   credit: CreditTable & { customerInfo?: any[] },
-  pagosManuales: number[],
   pagoPendiente: boolean
 ): LoanSummary => {
   const customer = credit.customerInfo?.[0];
@@ -130,10 +97,13 @@ const mapCreditToLoanSummary = (
     address: direccionCliente,
     threeWordsUbication: ubicacionCliente,
     fixedCharge: credit.fixedCharge,
-    historialPagos: buildSimulatedHistorial(credit, pagosManuales),
-    // Para el progreso real de pagos en la tarjeta expandida (LoanExpandedDetails),
-    // calculado contra getPaymentByCredit 
+    // historialPagos se llena con datos reales al abrir el modal (ver
+    // handleVerHistorial en ContactPaymentList.tsx) — aquí no hace falta
+    // ponerlo, PaymentHistoryModal ya maneja el caso undefined como [].
+    // Ya no lo usa LoanExpandedDetails (la barra de progreso ahora se calcula
+    // con amountPaid/amountDue, que ya vienen con el crédito).
     chargePeriods: credit.chargeRules?.chargePeriods,
+    renovationPeriod: credit.chargeRules?.renovationPeriod,
     chargeFrequency: credit.chargeRules?.chargeFrequency,
     startDateChargeConfig: credit.startDateChargeConfig
       ? new Date(credit.startDateChargeConfig).toISOString()
@@ -143,7 +113,7 @@ const mapCreditToLoanSummary = (
     // pago todavía), o si hay un pago recién enviado en esta sesión (optimista,
     // antes del próximo refetch), o si el último pago real sigue pendiente.
     // Verde solo si el crédito y el último pago real ya están aprobados y
-    // cayó dentro de la ventana de 7 días.
+    // cayó dentro de la ventana del periodo de cobro vigente (ver esPagoATiempo).
     transactionPaymentStatusTemp:
       (credit.transactionStatus === 'pending' || pagoPendiente || credit.lastPayment?.transactionStatus === 'pending') ? 'pending' :
       (credit.transactionStatus === 'approved' && credit.lastPayment?.transactionStatus === 'approved' && esPagoATiempo(credit)) ? 'onTime' :
@@ -170,12 +140,10 @@ const useCreditsDashboardState = () => {
   // Filtro de "Créditos Diario"/"Créditos Semanal" que llega desde los
   // botones del home dashboard (chargeRules.chargeFrequency en el backend).
   const [chargeFrequencyFilter, setChargeFrequencyFilter] = useState<string[]>(initialChargeFrequency ?? []);
-  // Pagos simulados registrados a mano con el modal de "Pagar" (creditId -> montos capturados).
-  const [pagosManuales, setPagosManuales] = useState<Record<string, number[]>>({});
-  // Créditos con un pago recién enviado y "pendiente" de confirmación (simulación).
+  // Créditos con un pago recién enviado y "pendiente" de confirmación
   const [pagosPendientes, setPagosPendientes] = useState<Record<string, boolean>>({});
   // Totales agregados (por cobrar / cobrado / pendiente) que ahora vienen del
-  // backend (getCreditTotals), ya no se calculan sumando los records de la página actual.
+  // backend (getCreditTotals)
   const [creditsTotals, setCreditsTotals] = useState({ totalToCollect: 0, totalCollected: 0, totalPending: 0 });
 
   const fetchPage = (page: number, employeeId: string | null, search: string, chargeFrequency: string[]) => {
@@ -241,8 +209,9 @@ const useCreditsDashboardState = () => {
   const handleNavChange = (key: NavKey) => setActiveNav(key);
 
   // Al confirmar el monto en el modal, crea el pago real en el backend
-  // (createPaymentsByEmployee) y, mientras no exista un endpoint que liste
-  // los pagos reales en esta vista, lo deja en pending localmente.
+  // (createPaymentsByEmployee) y lo marca "pending" de forma optimista aquí
+  // mismo, para no esperar al próximo refetch — getPaymentByCredit (el que sí
+  // trae los pagos reales) no se vuelve a pedir hasta que cambie la página.
   const handlePagar = async (loan: LoanSummary, _index: number, amount: number) => {
     if (!loan.creditId) return;
     const creditId = loan.creditId;
@@ -253,25 +222,23 @@ const useCreditsDashboardState = () => {
       total: amount,
     });
 
-    setPagosManuales((prev) => ({
-      ...prev,
-      [creditId]: [...(prev[creditId] ?? []), amount],
-    }));
     setPagosPendientes((prev) => ({ ...prev, [creditId]: true }));
   };
 
   const loans: LoanSummary[] = creditsData.records.map((credit) =>
-    mapCreditToLoanSummary(credit, pagosManuales[credit._id] ?? [], pagosPendientes[credit._id] ?? false)
+    mapCreditToLoanSummary(credit, pagosPendientes[credit._id] ?? false)
   );
   const totalPages = Math.max(1, Math.ceil(creditsData.total / ITEMS_PER_PAGE));
 
+  // Elegible para renovar cuando amountPaid (dinero ya aprobado, ver
+  // EntityOperationBuildUpdate.ts en transactions) alcanza el monto de la
+  // cuota en que la regla de cobro permite renovar: fixedCharge * renovationPeriod.
+  // Ej.: cuota fija $375, renovationPeriod 11 -> umbral $4,125.
   const esElegibleParaRenovar = (loan: LoanSummary) => {
-    const historial = loan.historialPagos ?? [];
-    const totalPagos = historial.length;
-    if (totalPagos === 0) return false;
+    const umbral = (loan.fixedCharge ?? 0) * (loan.renovationPeriod ?? 0);
+    if (umbral <= 0) return false;
 
-    const pagosRealizados = historial.filter((p) => p.status === 'pagado').length;
-    return pagosRealizados / totalPagos > UMBRAL_PORCENTAJE_LIQUIDADO;
+    return (loan.amountPaid ?? 0) >= umbral;
   };
 
   return {

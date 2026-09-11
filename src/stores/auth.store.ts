@@ -7,9 +7,10 @@ import { LoginRequest } from '@/types/LoginRequest';
 import { LoginResponse, LoginResponseUser } from '@/types/LoginResponse';
 import { SearchEmployeesRequest } from '@/types/SearchEmployeesRequest';
 import { EmployeeUser } from '@/types/EmployeeUser';
+import { useWalletLedgerStore } from './walletLedger.store';
 
- const BASE_URL = "https://credit-saas-gateway.onrender.com/authorizer";
-//const BASE_URL = "http://localhost:4000/authorizer";
+// const BASE_URL = "https://credit-saas-gateway.onrender.com/authorizer";
+const BASE_URL = "http://localhost:4000/authorizer";
 
 interface AuthStoreState {
     token: string,
@@ -34,10 +35,15 @@ export const useAuthStore = create<AuthStoreState>()(
                 localStorage.setItem("jwt", token);
 
                 set(() => ({ token, user, isAuthenticated: true }));
+                // Arranca la cartera local desde cero con el snapshot del login 
+                if (user?.walletSnapshot) {
+                    useWalletLedgerStore.getState().initFromLogin(user.walletSnapshot);
+                }
             },
             logout: () => {
                 localStorage.removeItem("jwt");
                 set(() => ({ token: '', user: null, isAuthenticated: false }));
+                useWalletLedgerStore.getState().reset();
             },
             searchEmployees: async (request: SearchEmployeesRequest) => {
                 const response = await axios.post<{ total: number, records: EmployeeUser[] }>(`${BASE_URL}/searchEmployees`, request);

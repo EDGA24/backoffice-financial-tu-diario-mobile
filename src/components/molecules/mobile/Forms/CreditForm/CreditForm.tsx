@@ -10,6 +10,7 @@ import ChargeRulesAutocompleteField, {
 } from '../../ChargeRulesAutocompleteField/ChargeRulesAutocompleteField';
 import { useAuthStore } from '@/stores/auth.store';
 import { ChargeFrequencyEnum } from '@/shared/constants/ChargeFrequencyEnum';
+import { UserRoleEnum } from '@/shared/constants/UserRoleEnum';
 
 const FREQUENCY_LABELS: Record<string, string> = {
   [ChargeFrequencyEnum.DAILY]: 'Diario',
@@ -24,6 +25,10 @@ export interface CreditFormProps {
 
 export const CreditForm: React.FC<CreditFormProps> = ({ control, errors, setValue }) => {
   const ChargeRules = useAuthStore((state) => state.user?.creditorCompanyInfo?.chargeRules ?? []);
+  const roles = useAuthStore((state) => state.user?.roles ?? []);
+  // Solo admin puede editar a mano periodos/renovación/comisión — el cobrador
+  // solo puede cambiar la regla completa (Frecuencia arriba), no sus valores.
+  const isAdmin = roles.some((role) => role.toLowerCase() === UserRoleEnum.ADMIN);
 
   const chargeRulesOptions: ChargeRuleOption[] = useMemo(
     () =>
@@ -66,6 +71,7 @@ export const CreditForm: React.FC<CreditFormProps> = ({ control, errors, setValu
         onSelectOption={handleSelectChargeRules}
         required
         label="Selecciona reglas de cobro"
+        readOnly={!isAdmin}
       />
 
       <Typography sx={{ mt: 1, mb: -0.5, fontWeight: 700, fontSize: 16, color: 'primary.main' }}>

@@ -34,9 +34,12 @@ export interface LoanSummary {
   address?: string;
   threeWordsUbication?: string;
   fixedCharge?: number;
-  // Para calcular el progreso real de pagos (LoanExpandedDetails) contra
-  // getPaymentByCredit, en vez de simular a partir del tiempo transcurrido.
+  // Ya no lo usa LoanExpandedDetails (la barra de progreso ahora se calcula
+  // con amountPaid/amountDue, que ya vienen con el crédito).
   chargePeriods?: number;
+  // Cuota (pago) a partir de la cual el crédito ya se puede renovar — se usa
+  // junto con fixedCharge para el umbral de "elegible para renovar".
+  renovationPeriod?: number;
   chargeFrequency?: string;
   startDateChargeConfig?: string;
   // 'pending' pinta la tarjeta de amarillo: la transacción de desembolso del

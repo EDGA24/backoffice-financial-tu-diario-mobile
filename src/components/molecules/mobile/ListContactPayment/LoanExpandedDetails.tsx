@@ -55,14 +55,14 @@ function InfoRow({
 }
 
 export default function LoanExpandedDetails({ loan, realPayments, loadingRealPayments }: LoanExpandedDetailsProps) {
-  // Progreso: solo cuenta pagos reales donde SÍ entró dinero (total > 0) — un
-  // registro en $0 es una falta (semana reportada sin pago), no un avance.
-  // Contar cualquier registro (incluidas las faltas) hacía que un cliente que
-  // nunca ha pagado nada apareciera con progreso en la barra.
-  const totalPagos = loan.chargePeriods ?? 0;
-  const pagosConDinero = realPayments?.filter((p) => (p.total ?? 0) > 0) ?? [];
-  const pagosRealizados = pagosConDinero.length;
-  const progresoPagos = totalPagos > 0 ? (pagosRealizados / totalPagos) * 100 : 0;
+  // Monto pagado / por pagar campos  del crédito (amountPaid/amountDue).
+  // amountPaid solo se actualiza cuando se APRUEBA un pago (ver
+  // EntityOperationBuildUpdate.ts en transactions), así que el progreso ya
+  // refleja solo dinero confirmado, no pagos todavía pendientes de aprobar.
+  const montoPagado = loan.amountPaid ?? 0;
+  const montoPorPagar = loan.amountDue ?? 0;
+
+  const progresoPagos = montoPorPagar > 0 ? Math.min(100, (montoPagado / montoPorPagar) * 100) : 0;
 
   // Próximo pago = un periodo después del último REGISTRO de cobro (aunque
   // haya sido en $0) — el cobrador sigue visitando cada semana según el
@@ -77,11 +77,6 @@ export default function LoanExpandedDetails({ loan, realPayments, loadingRealPay
     ? formatDate(new Date(new Date(fechaBase).getTime() + periodDays * 24 * 60 * 60 * 1000))
     : undefined;
 
-  // Monto pagado / por pagar: campos reales del crédito (amountPaid/amountDue).
-  // El monto total ya se muestra arriba (loan.amount) antes de expandir la tarjeta.
-  const montoPagado = loan.amountPaid ?? 0;
-  const montoPorPagar = loan.amountDue ?? 0;
-
   return (
     <Box sx={{ pt: 1.5, pb: 0.5 }}>
       <Divider sx={{ mb: 2 }} />
@@ -93,7 +88,7 @@ export default function LoanExpandedDetails({ loan, realPayments, loadingRealPay
       ) : (
         <ProgressBar
           value={progresoPagos}
-          label={`${pagosRealizados} de ${totalPagos} pagos`}
+          label={`$${montoPagado.toLocaleString('es-MX', { minimumFractionDigits: 2 })} de $${montoPorPagar.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`}
         />
       )}
 

@@ -14,6 +14,7 @@ import type { SvgIconComponent } from '@mui/icons-material';
 import { useTransactionStore } from '@/stores/transactions.store';
 import { useCreditStore } from '@/stores/credits.store';
 import { useAuthStore } from '@/stores/auth.store';
+import { useWalletLedgerStore } from '@/stores/walletLedger.store';
 import { TransactionTable } from '@/types/TransactionTable';
 import type { Transactions } from '@/types/Transactions';
 import type { TransactionsFilterValue } from '@/components/molecules/mobile/Filter/TransactionsFilterSheet/TransactionsFilterSheet';
@@ -146,10 +147,15 @@ const useWalletDashboardState = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [filter, setFilter] = useState<TransactionsFilterValue>(DEFAULT_FILTER);
   const [searchTerm, setSearchTerm] = useState('');
-  const [walletTotalAmount, setWalletTotalAmount] = useState<number | undefined>(undefined);
+  // Reemplazados por walletLedgerStore (cartera local) — se dejan comentados
+  // en vez de borrarlos por si hace falta volver a este estado local.
+  // const [walletTotalAmount, setWalletTotalAmount] = useState<number | undefined>(undefined);
   const [walletAccountNumber, setWalletAccountNumber] = useState<string>('');
-  const [walletPendingIncomes, setWalletPendingIncomes] = useState<number | undefined>(undefined);
-  const [walletPendingExpenses, setWalletPendingExpenses] = useState<number | undefined>(undefined);
+  // const [walletPendingIncomes, setWalletPendingIncomes] = useState<number | undefined>(undefined);
+  // const [walletPendingExpenses, setWalletPendingExpenses] = useState<number | undefined>(undefined);
+  const walletTotalAmount = useWalletLedgerStore((state) => state.firmBalance);
+  const walletPendingIncomes = useWalletLedgerStore((state) => state.pendingIncomesBalance);
+  const walletPendingExpenses = useWalletLedgerStore((state) => state.pendingExpensesBalance);
   const [transactionSheetOpen, setTransactionSheetOpen] = useState(false);
   const [transactionSheetTitle, setTransactionSheetTitle] = useState('Nuevo movimiento');
   const [activeAction, setActiveAction] = useState<WalletActionConfig>(WALLET_ACTIONS_BASE[0]);
@@ -227,11 +233,13 @@ const useWalletDashboardState = () => {
   useEffect(() => {
     if (!walletId) return;
     getWalletInfo({ walletId }).then(({ records }) => {
+      // getWalletInfo ya sincroniza walletLedgerStore por dentro (credits.store.ts)
+      // cuando la wallet que regresa es la propia — no hace falta repetirlo aquí.
       const wallet = records[0];
-      setWalletTotalAmount(wallet?.firmBalance);
+      // setWalletTotalAmount(wallet?.firmBalance);
       setWalletAccountNumber(wallet?.accountNumber ?? '');
-      setWalletPendingIncomes(wallet?.pendingIncomesBalance);
-      setWalletPendingExpenses(wallet?.pendingExpensesBalance);
+      // setWalletPendingIncomes(wallet?.pendingIncomesBalance);
+      // setWalletPendingExpenses(wallet?.pendingExpensesBalance);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletId]);

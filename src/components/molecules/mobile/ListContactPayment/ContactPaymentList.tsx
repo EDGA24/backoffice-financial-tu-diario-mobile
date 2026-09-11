@@ -31,7 +31,7 @@ import AutorenewRoundedIcon from '@mui/icons-material/AutorenewRounded';
 import { useNavigate } from 'react-router-dom';
 import { useCreditStore } from '@/stores/credits.store';
 import type { PaymentTable } from '@/types/PaymentTable';
-import { PENDING_APPROVAL_YELLOW, ON_TIME_PAYMENT_GREEN } from '@/shared/constants/statusColors';
+import { PENDING_APPROVAL_YELLOW, ON_TIME_PAYMENT_GREEN, RENEWAL_AVAILABLE_CYAN } from '@/shared/constants/statusColors';
 
 const PAYMENT_STATUS_MAP: Record<string, PaymentRecord['status']> = {
   approved: 'pagado',
@@ -211,6 +211,14 @@ export default function ContactPaymentList({
                 ...(pagoATiempo && {
                   backgroundColor: alpha(ON_TIME_PAYMENT_GREEN, 0.28),
                   borderColor: alpha(ON_TIME_PAYMENT_GREEN, 0.85),
+                  borderWidth: 1.5,
+                }),
+                // Disponible para renovar: se pinta encima de "a tiempo" (verde) si
+                // aplica, pero "pendiente de aprobación" (amarillo) sigue siendo lo
+                // más urgente y gana al final si coinciden.
+                ...(puedeRenovar && {
+                  backgroundColor: alpha(RENEWAL_AVAILABLE_CYAN, 0.28),
+                  borderColor: alpha(RENEWAL_AVAILABLE_CYAN, 0.85),
                   borderWidth: 1.5,
                 }),
                 ...(pagoPendiente && {

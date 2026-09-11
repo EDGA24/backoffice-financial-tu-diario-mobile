@@ -6,12 +6,14 @@ import { get } from 'lodash';
 import InputFormatField from '@/components/atoms/FormInputFileds/InputFormatField/InputFormatField';
 import AutocompleteFormatField from '@/components/atoms/FormInputFileds/AutocompleteFormatField/AutocompleteFormatField';
 import type { ChargeRules } from '@/types/Credits';
+import { ChargeFrequencyEnum } from '@/shared/constants/ChargeFrequencyEnum';
 
 export type ChargeRuleOption = { optionId: string; label: string } & ChargeRules;
 
+
 const FREQUENCY_OPTIONS = [
-  { optionId: 'DAILY', label: 'Diario' },
-  { optionId: 'WEEKLY', label: 'Semanal' },
+  { optionId: ChargeFrequencyEnum.DAILY, label: 'Diario' },
+  { optionId: ChargeFrequencyEnum.WEEKLY, label: 'Semanal' },
 ];
 
 export interface ChargeRulesAutocompleteFieldProps {
@@ -25,6 +27,20 @@ export interface ChargeRulesAutocompleteFieldProps {
   label?: string;
   rules?: {};
   sx?: {};
+  // Cobrador: no puede tocar periodos/renovación/comisión a mano, solo elegir
+  // otra regla completa arriba (Frecuencia). Admin sí puede editar cada valor.
+  readOnly?: boolean;
+}
+
+function ReadOnlyRow({ label, value }: { label: string; value: string }) {
+  return (
+    <Box>
+      <Typography variant="caption" color="text.secondary" component="div">
+        {label}
+      </Typography>
+      <Typography sx={{ fontWeight: 600 }}>{value}</Typography>
+    </Box>
+  );
 }
 
 const mobileFieldSx = {
@@ -51,6 +67,7 @@ const ChargeRulesAutocompleteField: React.FC<ChargeRulesAutocompleteFieldProps> 
   label = 'Selecciona reglas de cobro',
   rules = {},
   sx = {},
+  readOnly = false,
 }) => {
   const fieldError = get(errors, name);
 
@@ -102,47 +119,61 @@ const ChargeRulesAutocompleteField: React.FC<ChargeRulesAutocompleteFieldProps> 
                 }}
               >
                 <Typography variant="caption" color="text.secondary">
-                  Puedes ajustar estos valores si lo necesitas
+                  {readOnly
+                    ? 'Estos valores vienen fijos con la regla seleccionada  para cambiarlos, elige otra opción arriba'
+                    : 'Puedes ajustar estos valores si lo necesitas'}
                 </Typography>
 
-                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-                  <AutocompleteFormatField
-                    name={`${chargeRulesNamePrefix}.chargeFrequency`}
-                    control={control}
-                    errors={errors}
-                    options={FREQUENCY_OPTIONS}
-                    required
-                    label="Frecuencia"
-                  />
+                {readOnly ? (
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+                    <ReadOnlyRow
+                      label="Frecuencia"
+                      value={FREQUENCY_OPTIONS.find((opt) => opt.optionId === selectedOption.chargeFrequency)?.label ?? '—'}
+                    />
+                    <ReadOnlyRow label="Periodos" value={String(selectedOption.chargePeriods ?? '—')} />
+                    <ReadOnlyRow label="Periodo de renovación" value={String(selectedOption.renovationPeriod ?? '—')} />
+                    <ReadOnlyRow label="Tasa de comisión" value={`${selectedOption.comissionRate ?? '—'}%`} />
+                  </Box>
+                ) : (
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+                    <AutocompleteFormatField
+                      name={`${chargeRulesNamePrefix}.chargeFrequency`}
+                      control={control}
+                      errors={errors}
+                      options={FREQUENCY_OPTIONS}
+                      required
+                      label="Frecuencia"
+                    />
 
-                  <InputFormatField
-                    name={`${chargeRulesNamePrefix}.chargePeriods`}
-                    control={control}
-                    errors={errors}
-                    required
-                    type="number"
-                    label="Periodos"
-                  />
+                    <InputFormatField
+                      name={`${chargeRulesNamePrefix}.chargePeriods`}
+                      control={control}
+                      errors={errors}
+                      required
+                      type="number"
+                      label="Periodos"
+                    />
 
-                  <InputFormatField
-                    name={`${chargeRulesNamePrefix}.renovationPeriod`}
-                    control={control}
-                    errors={errors}
-                    required
-                    type="number"
-                    label="Periodo de renovación"
-                  />
+                    <InputFormatField
+                      name={`${chargeRulesNamePrefix}.renovationPeriod`}
+                      control={control}
+                      errors={errors}
+                      required
+                      type="number"
+                      label="Periodo de renovación"
+                    />
 
-                  <InputFormatField
-                    name={`${chargeRulesNamePrefix}.comissionRate`}
-                    control={control}
-                    errors={errors}
-                    required
-                    type="number"
-                    label="Tasa de comisión"
-                    placeholder="%"
-                  />
-                </Box>
+                    <InputFormatField
+                      name={`${chargeRulesNamePrefix}.comissionRate`}
+                      control={control}
+                      errors={errors}
+                      required
+                      type="number"
+                      label="Tasa de comisión"
+                      placeholder="%"
+                    />
+                  </Box>
+                )}
               </Box>
             )}
           </Box>

@@ -14,9 +14,11 @@ import { PaymentTable } from '@/types/PaymentTable';
 import { GetWalletRequest } from '@/types/GetWalletRequest';
 import { WalletTable } from '@/types/WalletTable';
 import { GetCreditTotalsRequest, GetCreditTotalsResponse } from '@/types/GetCreditTotalsRequest';
+import { useWalletLedgerStore } from './walletLedger.store';
+import { useAuthStore } from './auth.store';
 
- const BASE_URL = "https://credit-saas-gateway.onrender.com/credits";
-//const BASE_URL = "http://localhost:4001/credits";
+// const BASE_URL = "https://credit-saas-gateway.onrender.com/credits";
+const BASE_URL = "http://localhost:4001/credits";
 
 // Resultado del autocomplete de clientes — Customers no trae _id (es el
 // shape para crear un cliente), este sí lo necesita para poder seleccionarlo.
@@ -67,12 +69,26 @@ export const useCreditStore = create<CreditStoreState>()(
                 };
             },
             createCredit: async (request: { customer?: Customers, credit: Credits }) => {
+                console.log("Create---credit : ", request.credit);
                 const response = await axios.post<{ data: boolean }>(`${BASE_URL}/createCreditsByEmployee`, request);
-                return get(response.data, "data", false);
+                const ok = get(response.data, "data", false);
+                // Optimista: el desembolso sale de la wallet del user logueado,
+                // como egreso pendiente — no espera a volver a consultar el servidor.
+                if (ok) {
+                    useWalletLedgerStore.getState().applyLocalCredit(get(request, "credit.creditAmount", 0));
+                }
+                return ok;
             },
             createPayment: async (request: { creditId: string, customerId: string, total: number }) => {
+                console.log("Total---:", request.total);
                 const response = await axios.post<{ data: boolean }>(`${BASE_URL}/createPaymentsByEmployee`, request);
-                return get(response.data, "data", false);
+                const ok = get(response.data, "data", false);
+                // Optimista: el cobro entra a la wallet del user logueado,
+                // como ingreso pendiente — no espera a volver a consultar el servidor.
+                if (ok) {
+                    useWalletLedgerStore.getState().applyLocalPayment(request.total);
+                }
+                return ok;
             },
             getPaymentByCredit: async (request: GetPaymentRequest) => {
                 const response = await axios.post<{ total: number, records: PaymentTable[] }>(`${BASE_URL}/getPaymentyByCredit`, request);
@@ -83,9 +99,21 @@ export const useCreditStore = create<CreditStoreState>()(
             },
             getWalletInfo: async (request: GetWalletRequest) => {
                 const response = await axios.post<{ total: number, records: WalletTable[] }>(`${BASE_URL}/getWalletInfo`, request);
+                const records: WalletTable[] = get(response.data, "data.records", []);
+
+                // Solo sincroniza la cartera local cuando la wallet que regresó es la
+                // PROPIA del user logueado (este mismo endpoint también se usa para
+                // resolver la wallet de OTRO empleado, ej. al elegir destino de una
+                // transferencia — esa no debe tocar la cartera local de quien está logueado).
+                const ownWalletId = useAuthStore.getState().user?.walletId;
+                const wallet = records[0];
+                if (ownWalletId && wallet?._id === ownWalletId) {
+                    useWalletLedgerStore.getState().syncFromServer(wallet);
+                }
+
                 return {
                     total: get(response.data, "data.total", 0),
-                    records: get(response.data, "data.records", [])
+                    records
                 };
             },
             getCreditTotals: async (request: GetCreditTotalsRequest) => {

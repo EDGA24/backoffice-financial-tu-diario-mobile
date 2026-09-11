@@ -178,7 +178,7 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
         console.log('selectedCustomerId:', selectedCustomerId);
         console.log('customerFormState:', customerFormState);
         console.log('creditFormState:', creditFormState);
-
+        
         try {
             const credit: Credits = {
                 creditorCompanyId: get(creditFormState, 'creditorCompanyId', creditorCompanyId),
@@ -190,7 +190,9 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
                 ...(isRenewal ? { creditId: renewalLoan?.creditId } : {}),
                 admissionDate: get(creditFormState, 'admissionDate'),
                 created: get(creditFormState, 'created', Date.now()),
+        
                 creditAmount: get(creditFormState, 'creditAmount', 0),
+                
                 creditAmountWithMoratory: get(creditFormState, 'creditAmountWithMoratory', 0),
                 expirationDate: get(creditFormState, 'expirationDate'),
                 fixedCharge: get(creditFormState, 'fixedCharge', 0),

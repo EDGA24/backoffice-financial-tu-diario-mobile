@@ -14,9 +14,6 @@ export interface CreditTable {
     fixedCharge:              number;
     startDateChargeConfig:    Date;
     status:                   Status;
-    // Status de la transacción de DESEMBOLSO del propio crédito (nace en
-    // "pending" hasta que un admin la aprueba) — distinto del transactionStatus
-    // de lastPayment, que es el de un pago del cliente.
     transactionStatus?:       string;
     transactionId:            string;
     userId:                   string;

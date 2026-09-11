@@ -5,3 +5,6 @@ export const PENDING_APPROVAL_YELLOW = '#FDD835';
 // Pago registrado dentro de los 7 días siguientes al inicio del periodo de
 // cobro (startDateChargeConfig) — se considera "a tiempo".
 export const ON_TIME_PAYMENT_GREEN = '#66BB6A';
+// amountPaid ya alcanzó fixedCharge * renovationPeriod — el crédito está
+// disponible para renovar.
+export const RENEWAL_AVAILABLE_CYAN = '#00ACC1';
