@@ -54,7 +54,6 @@ export const useTransactionStore = create<TransactionStoreState>()(
                 }))
             },
             createTransactionByEmployee: async (request: Transactions) => {
-                console.log("Transaccionessssssssssssssss",request.total)
                 const response = await axios.post<{ data: boolean }>(`${BASE_URL}/createTransactionByEmployee`, request);
                 return get(response.data, "data", false);
             }

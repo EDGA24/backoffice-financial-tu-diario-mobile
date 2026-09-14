@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Typography } from '@mui/material';
-
+import { Alert, Box, Typography } from '@mui/material';
 import FormScreenHeader from '@/components/organisms/mobile/FormscreenHeader/FormscreenHeader';
 import CustomerForm from '@/components/molecules/mobile/Forms/CustomerForm/CustomerForm';
 import CreditForm from '@/components/molecules/mobile/Forms/CreditForm/CreditForm';
@@ -19,12 +18,15 @@ const CreditsCustomerContainer = () => {
     credit,
     loadingSave,
     creditOverlayStatus,
+    creditError,
     isExistingCustomer,
     isRenewal,
     handleOnSaveCredit,
   } = useCreditsCustomerContainerState();
-  const navigate = useNavigate();
+  console.log("CreditsCustomerContainer-credit: ", credit)
 
+  
+  const navigate = useNavigate();
   return (
     <React.Fragment>
       <FormScreenHeader title={isRenewal ? 'Renovar Crédito' : 'Nuevo Crédito'} onBack={() => navigate(-1)} />
@@ -35,6 +37,12 @@ const CreditsCustomerContainer = () => {
             ? 'Este crédito se creará para el cliente que está renovando.'
             : 'Todos los campos marcados son obligatorios'}
         </Typography>
+
+        {creditError && (
+          <Alert severity="error" sx={{ mt: -1 }}>
+            {creditError}
+          </Alert>
+        )}
 
         {!isRenewal && (
           <AutocompleteFormatField

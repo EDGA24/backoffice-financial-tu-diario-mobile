@@ -56,8 +56,7 @@ function InfoRow({
 
 export default function LoanExpandedDetails({ loan, realPayments, loadingRealPayments }: LoanExpandedDetailsProps) {
   // Monto pagado / por pagar campos  del crédito (amountPaid/amountDue).
-  // amountPaid solo se actualiza cuando se APRUEBA un pago (ver
-  // EntityOperationBuildUpdate.ts en transactions), así que el progreso ya
+  // amountPaid solo se actualiza cuando se APRUEBA un pago, así que el progreso ya
   // refleja solo dinero confirmado, no pagos todavía pendientes de aprobar.
   const montoPagado = loan.amountPaid ?? 0;
   const montoPorPagar = loan.amountDue ?? 0;

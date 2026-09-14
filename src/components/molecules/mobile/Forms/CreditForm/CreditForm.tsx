@@ -9,6 +9,7 @@ import ChargeRulesAutocompleteField, {
   type ChargeRuleOption,
 } from '../../ChargeRulesAutocompleteField/ChargeRulesAutocompleteField';
 import { useAuthStore } from '@/stores/auth.store';
+import { useWalletLedgerStore } from '@/stores/walletLedger.store';
 import { ChargeFrequencyEnum } from '@/shared/constants/ChargeFrequencyEnum';
 import { UserRoleEnum } from '@/shared/constants/UserRoleEnum';
 
@@ -29,6 +30,13 @@ export const CreditForm: React.FC<CreditFormProps> = ({ control, errors, setValu
   // Solo admin puede editar a mano periodos/renovación/comisión — el cobrador
   // solo puede cambiar la regla completa (Frecuencia arriba), no sus valores.
   const isAdmin = roles.some((role) => role.toLowerCase() === UserRoleEnum.ADMIN);
+
+  
+  // operación EXPENSES): egresos pendientes se restan, ingresos pendientes se suman.
+  const firmBalance = useWalletLedgerStore((state) => state.firmBalance);
+  const pendingIncomesBalance = useWalletLedgerStore((state) => state.pendingIncomesBalance);
+  const pendingExpensesBalance = useWalletLedgerStore((state) => state.pendingExpensesBalance);
+  const availableBalance = firmBalance - pendingExpensesBalance + pendingIncomesBalance;
 
   const chargeRulesOptions: ChargeRuleOption[] = useMemo(
     () =>
@@ -113,6 +121,11 @@ export const CreditForm: React.FC<CreditFormProps> = ({ control, errors, setValu
         type="number"
         label="Monto del crédito"
         placeholder="0.00"
+        rules={{
+          validate: (value: number) =>
+            Number(value) <= availableBalance ||
+            `Saldo insuficiente (disponible: $${availableBalance.toFixed(2)})`,
+        }}
       />
 
       <Typography variant="caption" color="text.secondary">

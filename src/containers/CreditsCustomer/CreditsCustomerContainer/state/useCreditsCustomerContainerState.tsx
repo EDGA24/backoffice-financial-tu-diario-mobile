@@ -8,6 +8,7 @@ import type { LoanSummary } from '@/components/molecules/mobile/DashboardContacT
 import { get } from 'lodash';
 import { useCreditStore, type CustomerSearchResult } from '@/stores/credits.store';
 import { useAuthStore } from '@/stores/auth.store';
+import { useWalletLedgerStore } from '@/stores/walletLedger.store';
 import { NAV_ROUTES } from '@/shared/constants/navRoutes';
 import type { TransactionOverlayStatus } from '@/components/molecules/mobile/TransactionStatusOverlay/TransactionStatusOverlay';
 
@@ -42,6 +43,7 @@ export interface CustomerSummary {
 export interface IUseCreditsCustomerContainerState {
     loadingSave: boolean;
     creditOverlayStatus: TransactionOverlayStatus;
+    creditError: string | null;
     isExistingCustomer: boolean;
     isRenewal: boolean;
     handleOnSaveCredit: () => void;
@@ -83,6 +85,7 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
     const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
     const [loadingSave, setLoadingSave] = useState(false);
     const [creditOverlayStatus, setCreditOverlayStatus] = useState<TransactionOverlayStatus>(null);
+    const [creditError, setCreditError] = useState<string | null>(null);
 
     // Autocomplete de "cliente existente" — resultados reales del cobrador
     // autenticado, buscados con debounce mientras se teclea.
@@ -118,6 +121,9 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
         formState: { errors: errorsCredit },
         setValue: setValueCredit,
     } = useForm<Credits>({
+        // onBlur: el modo por defecto ('onSubmit') no valida nada porque este
+        // formulario no usa handleSubmit — arma el body a mano con useWatch.
+        mode: 'onBlur',
         defaultValues: {
             creditorCompanyId: renewalLoan?.creditorCompanyId ?? creditorCompanyId,
             customerId: renewalLoan?.customerId ?? '',
@@ -170,6 +176,20 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
     };
 
     const handleOnSaveCredit = async () => {
+        setCreditError(null);
+
+        // Validación proactiva contra el ledger local, antes de llamar al backend
+        // — misma fórmula que usa TrasactionEffectsCatalog (operación EXPENSES) para
+        // aprobar/rechazar. No sustituye la validación del backend (fuente de verdad),
+        // solo evita un round-trip que sabemos que va a ser rechazado.
+        const { firmBalance, pendingIncomesBalance, pendingExpensesBalance } = useWalletLedgerStore.getState();
+        const availableBalance = firmBalance - pendingExpensesBalance + pendingIncomesBalance;
+        const requestedAmount = Number(get(creditFormState, 'creditAmount', 0));
+        if (requestedAmount > availableBalance) {
+            setCreditError(`Saldo insuficiente (disponible: $${availableBalance.toFixed(2)})`);
+            return;
+        }
+
         setLoadingSave(true);
         // Bloquea toda la pantalla para que no se pueda picar "Guardar" otra vez
         // mientras la petición sigue en curso.
@@ -178,7 +198,7 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
         console.log('selectedCustomerId:', selectedCustomerId);
         console.log('customerFormState:', customerFormState);
         console.log('creditFormState:', creditFormState);
-        
+
         try {
             const credit: Credits = {
                 creditorCompanyId: get(creditFormState, 'creditorCompanyId', creditorCompanyId),
@@ -201,7 +221,11 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
                 chargeRules: get(creditFormState, 'chargeRules', {}),
             } as Credits;
 
-            await createCredit({
+            // para confirmar que creditAmount ya llega como number, no string.
+            console.log('[TEST] credit.creditAmount:', credit.creditAmount, typeof credit.creditAmount);
+            console.log('[TEST] credit completo:', credit);
+
+            const ok = await createCredit({
                 // Solo se manda "customer" cuando se está capturando un cliente nuevo;
                 // si ya existe (selector o renovación), el backend lo resuelve por customerId.
                 ...(isExistingCustomer ? {} : { customer: customerFormState as Customers }),
@@ -215,6 +239,14 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
                 await wait(MIN_LOADING_OVERLAY_MS - elapsed);
             }
 
+            // El backend responde 200 con data:false cuando rechaza la operación
+            // (p.ej. saldo insuficiente en la wallet) — no lanza excepción.
+            if (!ok) {
+                setCreditOverlayStatus(null);
+                setCreditError('No se pudo crear el crédito: saldo insuficiente en tu wallet.');
+                return;
+            }
+
             setCreditOverlayStatus('success');
             setTimeout(() => {
                 setCreditOverlayStatus(null);
@@ -223,6 +255,7 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
         } catch (error) {
             console.error('Error al crear el crédito:', error);
             setCreditOverlayStatus(null);
+            setCreditError('No se pudo crear el crédito. Intenta de nuevo.');
         } finally {
             setLoadingSave(false);
         }
@@ -251,6 +284,7 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
     return {
         loadingSave,
         creditOverlayStatus,
+        creditError,
         handleOnSaveCredit,
         isExistingCustomer,
         isRenewal,

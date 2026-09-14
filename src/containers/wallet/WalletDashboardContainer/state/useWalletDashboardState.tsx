@@ -372,9 +372,12 @@ const useWalletDashboardState = () => {
       setTransactionOverlayStatus('loading');
       const loadingStartedAt = Date.now();
 
+      // : para confirmar que total ya llega como number, no string.
+      console.log('[TEST] values.total:', get(values, 'total', 0), typeof get(values, 'total', 0));
+
       await createTransactionByEmployee({
         transactionType: get(values, 'transactionType', ''),
-        total: Number(get(values, 'total', 0)),
+        total: get(values, 'total', 0),
         description: get(values, 'description', ''),
         currency: get(values, 'currency', ''),
         sourceAccount: {

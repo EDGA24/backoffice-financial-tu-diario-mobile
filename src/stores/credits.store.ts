@@ -69,7 +69,6 @@ export const useCreditStore = create<CreditStoreState>()(
                 };
             },
             createCredit: async (request: { customer?: Customers, credit: Credits }) => {
-                console.log("Create---credit : ", request.credit);
                 const response = await axios.post<{ data: boolean }>(`${BASE_URL}/createCreditsByEmployee`, request);
                 const ok = get(response.data, "data", false);
                 // Optimista: el desembolso sale de la wallet del user logueado,

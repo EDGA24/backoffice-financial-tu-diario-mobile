@@ -4,7 +4,7 @@ import DashboardContactTable from '@/components/molecules/mobile/DashboardContac
 import CreditsSummaryCard from '@/components/molecules/mobile/CreditsSummaryCard/CreditsSummaryCard';
 import ColorLegend from '@/components/molecules/mobile/ColorLegend/ColorLegend';
 import useCreditsDashboardState from './State/useCreditsDashboardState';
-import { PENDING_APPROVAL_YELLOW, ON_TIME_PAYMENT_GREEN } from '@/shared/constants/statusColors';
+import { PENDING_APPROVAL_YELLOW, ON_TIME_PAYMENT_GREEN, RENEWAL_AVAILABLE_CYAN } from '@/shared/constants/statusColors';
 
 const LEGEND_ITEMS = [
     {
@@ -17,11 +17,17 @@ const LEGEND_ITEMS = [
         label: 'Pago a tiempo',
         description: 'Pago aprobado dentro del rango de fecha.',
     },
+    {
+        color: RENEWAL_AVAILABLE_CYAN,
+        label: 'Disponible para renovar',
+        description: 'El crédito ya alcanzó el monto de pagos necesario para poder renovarse.',
+    },
 ];
 
 const CreditsDashboardContainer = () => {
     const {
         loans,
+        totalCount,
         onPagar,
         esElegibleParaRenovar,
         employeeOptions,
@@ -59,6 +65,7 @@ const CreditsDashboardContainer = () => {
             {/* --- Últimos préstamos --- */}
             <DashboardContactTable
                 loans={loans}
+                totalCount={totalCount}
                 onPagar={onPagar}
                 esElegibleParaRenovar={esElegibleParaRenovar}
                 employeeOptions={employeeOptions}

@@ -1,6 +1,7 @@
 import {
     Avatar as MuiAvatar,
     Box,
+    Chip,
     Dialog,
     DialogContent,
     DialogTitle,
@@ -17,7 +18,19 @@ import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import ScheduleRoundedIcon from '@mui/icons-material/ScheduleRounded';
 import ErrorRoundedIcon from '@mui/icons-material/ErrorRounded';
 import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
+import { alpha } from '@mui/material/styles';
 import type { LoanSummary, PaymentRecord } from '../DashboardContacTable/DashboardContacTable';
+import { PARTIAL_PAYMENT_YELLOW } from '@/shared/constants/statusColors';
+import ColorLegend from '../ColorLegend/ColorLegend';
+
+const HISTORY_LEGEND_ITEMS = [
+    {
+        color: PARTIAL_PAYMENT_YELLOW,
+        label: 'Pago incompleto',
+        description: 'El monto pagado fue menor a la cuota del crédito.',
+    },
+];
 
 export interface PaymentHistoryModalProps {
     open: boolean;
@@ -87,16 +100,35 @@ export default function PaymentHistoryModal({ open, onClose, loan }: PaymentHist
                 }}
             >
                 <Box>
-                    <Typography sx={{ fontWeight: 700, fontSize: 16 }}>
-                        Historial de pagos
-                    </Typography>
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                        <Typography sx={{ fontWeight: 700, fontSize: 16 }}>
+                            Historial de pagos
+                        </Typography>
+                        {historial.length > 0 && (
+                            <Chip
+                                label={`${historial.length} ${historial.length === 1 ? 'pago' : 'pagos'}`}
+                                size="small"
+                                sx={{
+                                    height: 20,
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    bgcolor: 'primary.main',
+                                    color: 'primary.contrastText',
+                                    '& .MuiChip-label': { px: 1 },
+                                }}
+                            />
+                        )}
+                    </Stack>
                     <Typography variant="caption" color="text.secondary">
                         {loan.name} · {loan.phone}
                     </Typography>
                 </Box>
-                <IconButton onClick={onClose} size="small">
-                    <CloseRoundedIcon />
-                </IconButton>
+                <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', flexShrink: 0 }}>
+                    <ColorLegend items={HISTORY_LEGEND_ITEMS} />
+                    <IconButton onClick={onClose} size="small">
+                        <CloseRoundedIcon />
+                    </IconButton>
+                </Stack>
             </DialogTitle>
 
             <DialogContent sx={{ px: 2, pb: 2 }}>
@@ -110,6 +142,14 @@ export default function PaymentHistoryModal({ open, onClose, loan }: PaymentHist
                     <List disablePadding>
                         {historial.map((pago, idx) => {
                             const config = STATUS_CONFIG[pago.status];
+                            // Pago ya registrado pero por debajo de la cuota (fixedCharge)
+                            // del crédito — se marca en amarillo, no cuenta como incumplido
+                            // (eso es "atrasado"), solo como incompleto.
+                            const pagoIncompleto =
+                                pago.status === 'pagado' &&
+                                typeof loan.fixedCharge === 'number' &&
+                                loan.fixedCharge > 0 &&
+                                pago.amount < loan.fixedCharge;
                             return (
                                 <ListItem
                                     key={pago.id}
@@ -125,11 +165,15 @@ export default function PaymentHistoryModal({ open, onClose, loan }: PaymentHist
                                             sx={{
                                                 width: 36,
                                                 height: 36,
-                                                bgcolor: 'action.hover',
-                                                color: config.color,
+                                                bgcolor: pagoIncompleto ? alpha(PARTIAL_PAYMENT_YELLOW, 0.22) : 'action.hover',
+                                                color: pagoIncompleto ? '#8a6d00' : config.color,
+                                                ...(pagoIncompleto && {
+                                                    border: `2px solid ${alpha(PARTIAL_PAYMENT_YELLOW, 0.9)}`,
+                                                    boxShadow: `0 0 0 3px ${alpha(PARTIAL_PAYMENT_YELLOW, 0.15)}`,
+                                                }),
                                             }}
                                         >
-                                            {config.icon}
+                                            {pagoIncompleto ? <WarningAmberRoundedIcon sx={{ fontSize: 18 }} /> : config.icon}
                                         </MuiAvatar>
 
                                         <Box sx={{ flex: 1, minWidth: 0 }}>

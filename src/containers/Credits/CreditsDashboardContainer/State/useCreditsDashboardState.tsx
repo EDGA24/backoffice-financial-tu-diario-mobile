@@ -238,6 +238,12 @@ const useCreditsDashboardState = () => {
     const umbral = (loan.fixedCharge ?? 0) * (loan.renovationPeriod ?? 0);
     if (umbral <= 0) return false;
 
+    // Si el último pago sigue pendiente de aprobar (p.ej. justo el pago de
+    // renovación que ya se registró), no dejar volver a renovar — amountPaid
+    // no se mueve hasta que se apruebe, así que sin este check el botón se
+    // queda habilitado y se puede apilar un pago de renovación tras otro.
+    if (loan.transactionPaymentStatusTemp === 'pending') return false;
+
     return (loan.amountPaid ?? 0) >= umbral;
   };
 
@@ -245,6 +251,9 @@ const useCreditsDashboardState = () => {
     activeNav,
     handleNavChange,
     loans,
+    // Ya lo trae el backend (totalDocuments de searchCreditsByEmployee) — cuenta
+    // los créditos que matchean el filtro/búsqueda actual, no todo el catálogo.
+    totalCount: creditsData.total,
     onPagar: handlePagar,
     esElegibleParaRenovar,
     employeeOptions,

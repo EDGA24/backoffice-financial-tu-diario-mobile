@@ -1,4 +1,4 @@
-import { Box, Typography, ButtonBase, Stack } from '@mui/material';
+import { Box, Chip, Typography, ButtonBase, Stack } from '@mui/material';
 import type { LoanStatus } from '@/components/atoms/StatusChip/StatusChip';
 import ContactPaymentList from '../ListContactPayment/ContactPaymentList';
 import Pagination from '../Pagination/Pagination';
@@ -56,6 +56,7 @@ export interface LoanSummary {
 export interface DashboardContactTableProps {
   loans: LoanSummary[];
   title?: string;
+  totalCount?: number;
   actionLabel?: string;
   onActionClick?: () => void;
   onPagar?: (loan: LoanSummary, index: number, amount: number) => Promise<void> | void;
@@ -86,6 +87,7 @@ export interface DashboardContactTableProps {
 const DashboardContactTable: React.FC<DashboardContactTableProps> = ({
   loans,
   title = 'Ultimos préstamos',
+  totalCount,
   actionLabel = '',
   onActionClick,
   onPagar,
@@ -142,11 +144,27 @@ const DashboardContactTable: React.FC<DashboardContactTableProps> = ({
     <Box sx={{ mt: 3, px: 2.5 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
         <Typography sx={{ fontWeight: 700, fontSize: 15 }}>{title}</Typography>
-        <ButtonBase onClick={onActionClick}>
-          <Typography sx={{ fontWeight: 700, fontSize: 12, color: 'secondary.main' }}>
-            {actionLabel}
-          </Typography>
-        </ButtonBase>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+          {typeof totalCount === 'number' && (
+            <Chip
+              label={`${totalCount} ${totalCount === 1 ? 'crédito' : 'créditos'}`}
+              size="small"
+              sx={{
+                height: 20,
+                fontSize: 11,
+                fontWeight: 700,
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
+                '& .MuiChip-label': { px: 1 },
+              }}
+            />
+          )}
+          <ButtonBase onClick={onActionClick}>
+            <Typography sx={{ fontWeight: 700, fontSize: 12, color: 'secondary.main' }}>
+              {actionLabel}
+            </Typography>
+          </ButtonBase>
+        </Stack>
       </Box>
 
       {showSearch && (

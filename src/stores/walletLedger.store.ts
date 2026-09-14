@@ -1,6 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { customSessionStorage } from './storages/session-storage.storage';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import type { WalletSnapshot } from '@/types/LoginResponse';
 /**
  * Cartera local: espejo en el front de firmBalance/pendingIncomesBalance/
@@ -71,7 +70,9 @@ export const useWalletLedgerStore = create<WalletLedgerState>()(
         }),
         {
             name: 'wallet-ledger-storage',
-            storage: customSessionStorage,
+            // localStorage: consistente con auth.store — debe sobrevivir cerrar
+            // y reabrir la app mientras la sesión siga vigente, no resetear a $0.
+            storage: createJSONStorage(() => localStorage),
         }
     )
 );

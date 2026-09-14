@@ -46,6 +46,7 @@ const InputFormatField: React.FC<InputFormatFieldProps> = ({
   disabled = false,
 }) => {
   const isDate = type === 'date';
+  const isNumber = type === 'number';
   const fieldError = get(errors, name);
 
   return (
@@ -57,6 +58,12 @@ const InputFormatField: React.FC<InputFormatFieldProps> = ({
         <TextField
           {...field}
           value={field.value ?? ''}
+          onChange={(e) => {
+            const raw = e.target.value;
+            // type="number" en el <input> solo restringe qué se puede teclear 
+            // Number(...) — mejor convertir aquí una sola vez, de raíz.
+            field.onChange(isNumber && raw !== '' ? Number(raw) : raw);
+          }}
           autoComplete={name}
           fullWidth
           label={label}

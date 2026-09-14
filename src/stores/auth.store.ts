@@ -1,6 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware';
-import { customSessionStorage } from './storages/session-storage.storage';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import axios from "../shared/utils/axiosUtils"
 import { get } from 'lodash';
 import { LoginRequest } from '@/types/LoginRequest';
@@ -8,6 +7,7 @@ import { LoginResponse, LoginResponseUser } from '@/types/LoginResponse';
 import { SearchEmployeesRequest } from '@/types/SearchEmployeesRequest';
 import { EmployeeUser } from '@/types/EmployeeUser';
 import { useWalletLedgerStore } from './walletLedger.store';
+import { isJwtExpired } from '@/shared/utils/jwtUtils';
 
 // const BASE_URL = "https://credit-saas-gateway.onrender.com/authorizer";
 const BASE_URL = "http://localhost:4000/authorizer";
@@ -55,7 +55,18 @@ export const useAuthStore = create<AuthStoreState>()(
         }),
         {
             name: "auth-storage",
-            storage: customSessionStorage
+            // localStorage : debe sobrevivir a cerrar/reabrir
+            // la app, no solo recargar la pestaña — si no, el user se tendría
+            // que loguear cada vez aunque el JWT siga vigente.
+            storage: createJSONStorage(() => localStorage),
+            onRehydrateStorage: () => (state) => {
+                // Al reabrir la app: si el JWT persistido ya venció, cierra sesión
+                // de una vez en vez de dejar que ProtectedRoute confíe en un
+                // isAuthenticated:true que ya no sirve para llamar al backend.
+                if (state?.token && isJwtExpired(state.token)) {
+                    state.logout();
+                }
+            }
         }
     )
 )

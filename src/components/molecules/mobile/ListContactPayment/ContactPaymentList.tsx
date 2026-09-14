@@ -25,6 +25,7 @@ import StatusChip from '@/components/atoms/StatusChip/StatusChip';
 import LoanExpandedDetails from './LoanExpandedDetails';
 import PaymentHistoryModal from './PaymentHistoryModal';
 import PaymentAmountModal from './PaymentAmountModal';
+import RenewalFlowModal from './RenewalFlowModal';
 import type { LoanSummary, PaymentRecord } from '../DashboardContacTable/DashboardContacTable';
 import ArrowDropDownRoundedIcon from '@mui/icons-material/ArrowDropDownRounded';
 import AutorenewRoundedIcon from '@mui/icons-material/AutorenewRounded';
@@ -46,6 +47,18 @@ const formatPaymentDate = (isoDate?: string) =>
   isoDate
     ? new Date(isoDate).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: '2-digit' })
     : '';
+
+// El umbral real de renovación es fixedCharge * renovationPeriod, equivalente
+// a (renovationPeriod / chargePeriods) del total a pagar — se calcula por
+// crédito porque chargeRules varía entre empresas/créditos, no es un número fijo.
+const buildRenovacionTooltip = (loan: LoanSummary): string => {
+  const { renovationPeriod, chargePeriods } = loan;
+  if (!renovationPeriod || !chargePeriods) {
+    return 'Aún no alcanza el número de pagos requerido para renovar';
+  }
+  const porcentaje = ((renovationPeriod / chargePeriods) * 100).toFixed(1);
+  return `Disponible al alcanzar el pago ${renovationPeriod} de ${chargePeriods} (${porcentaje}% del crédito liquidado)`;
+};
 
 const mapPaymentToRecord = (payment: PaymentTable, index: number): PaymentRecord => ({
   id: payment._id ?? `pago-${index}`,
@@ -75,6 +88,7 @@ export default function ContactPaymentList({
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [loanEnModal, setLoanEnModal] = useState<LoanSummary | null>(null);
   const [loanEnPagoModal, setLoanEnPagoModal] = useState<{ loan: LoanSummary; index: number } | null>(null);
+  const [loanEnRenovacionModal, setLoanEnRenovacionModal] = useState<LoanSummary | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [menuIndex, setMenuIndex] = useState<number | null>(null);
   const [loadingHistorialIndex, setLoadingHistorialIndex] = useState<number | null>(null);
@@ -132,6 +146,13 @@ export default function ContactPaymentList({
     }
 
     handleCerrarMenuAcciones();
+    setLoanEnRenovacionModal(loan);
+  };
+
+  // Se llama cuando RenewalFlowModal ya registró el pago de la cuota —
+  // aquí sí se navega, con el mismo state que antes usaba handleRenovar.
+  const handleRenovacionLista = (loan: LoanSummary) => {
+    setLoanEnRenovacionModal(null);
     navigate('/customer-create', {
       state: {
         modo: 'renovacion',
@@ -199,7 +220,10 @@ export default function ContactPaymentList({
           const pagoATiempo = loan.transactionPaymentStatusTemp === 'onTime';
           const key = `${loan.phone}-${loan.date}-${i}`;
           const estaExpandido = expandedKey === key;
-          const disabledAcciones = yaPagado || estaPagando;
+          // pagoPendiente bloquea "Pagar"/"Renovar" mientras el último pago
+          // siga sin aprobar — si no, se puede seguir registrando pagos
+          // encima de uno que ya está esperando aprobación.
+          const disabledAcciones = yaPagado || estaPagando || pagoPendiente;
 
           return (
             <Card
@@ -343,11 +367,7 @@ export default function ContactPaymentList({
                     </MenuItem>
 
                     <Tooltip
-                      title={
-                        puedeRenovar
-                          ? ''
-                          : 'Disponible al alcanzar 11 pagos o el 95% del crédito liquidado'
-                      }
+                      title={puedeRenovar ? '' : buildRenovacionTooltip(loan)}
                       placement="left"
                     >
                       <span>
@@ -392,6 +412,13 @@ export default function ContactPaymentList({
         loading={pagandoIndex !== null}
         onClose={() => setLoanEnPagoModal(null)}
         onConfirm={handleConfirmarPago}
+      />
+
+      <RenewalFlowModal
+        open={loanEnRenovacionModal !== null}
+        loan={loanEnRenovacionModal}
+        onClose={() => setLoanEnRenovacionModal(null)}
+        onReadyToCreateCredit={handleRenovacionLista}
       />
     </>
   );
