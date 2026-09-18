@@ -23,6 +23,10 @@ export interface Credits {
 export interface ChargeRules {
     chargeFrequency?:  string;
     chargePeriods?:    number;
+    // Solo aplica a chargeFrequency "weekly" — día de la semana en que cae
+    // el cobro (ej. "monday"). El backend la usa para calcular
+    // startDateChargeConfig (ver ChargeFrequencyDateCatalog).
+    chargeDay?:        string;
     comissionRate?:    number;
     renovationPeriod?: number;
 }

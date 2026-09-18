@@ -8,7 +8,6 @@ import type { LoanSummary } from '@/components/molecules/mobile/DashboardContacT
 import { get } from 'lodash';
 import { useCreditStore, type CustomerSearchResult } from '@/stores/credits.store';
 import { useAuthStore } from '@/stores/auth.store';
-import { useWalletLedgerStore } from '@/stores/walletLedger.store';
 import { NAV_ROUTES } from '@/shared/constants/navRoutes';
 import type { TransactionOverlayStatus } from '@/components/molecules/mobile/TransactionStatusOverlay/TransactionStatusOverlay';
 
@@ -44,6 +43,7 @@ export interface IUseCreditsCustomerContainerState {
     loadingSave: boolean;
     creditOverlayStatus: TransactionOverlayStatus;
     creditError: string | null;
+    clearCreditError: () => void;
     isExistingCustomer: boolean;
     isRenewal: boolean;
     handleOnSaveCredit: () => void;
@@ -61,6 +61,7 @@ export interface IUseCreditsCustomerContainerState {
 
     credit: IFormProps<Credits> & {
         setValue: any;
+        initialChargeFrequency?: string;
     };
 }
 
@@ -100,7 +101,14 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
     const {
         control: controlCustomer,
         formState: { errors: errorsCustomer },
+        trigger: triggerCustomer,
     } = useForm<Customers>({
+        // onChange: sin esto, como el form no usa handleSubmit (isSubmitted
+        // nunca se activa), react-hook-form se salta la validación en cada
+        // tecleo por completo con el modo default ('onSubmit') — un campo
+        // marcado en rojo por trigger() se quedaría así para siempre aunque
+        // lo llenes, porque nunca se vuelve a evaluar.
+        mode: 'onChange',
         defaultValues: {
             contact: {
                 name: '',
@@ -120,10 +128,13 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
         control: controlCredit,
         formState: { errors: errorsCredit },
         setValue: setValueCredit,
+        trigger: triggerCredit,
     } = useForm<Credits>({
-        // onBlur: el modo por defecto ('onSubmit') no valida nada porque este
-        // formulario no usa handleSubmit — arma el body a mano con useWatch.
-        mode: 'onBlur',
+        // onChange (no onBlur): mismo motivo que controlCustomer arriba — como
+        // este form no usa handleSubmit, con 'onBlur' un campo marcado en rojo
+        // por trigger() solo se revalidaba al perder el foco, no mientras
+        // tecleas, así que el rojo se quedaba pegado hasta que tabularas fuera.
+        mode: 'onChange',
         defaultValues: {
             creditorCompanyId: renewalLoan?.creditorCompanyId ?? creditorCompanyId,
             customerId: renewalLoan?.customerId ?? '',
@@ -178,17 +189,22 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
     const handleOnSaveCredit = async () => {
         setCreditError(null);
 
-        // Validación proactiva contra el ledger local, antes de llamar al backend
-        // — misma fórmula que usa TrasactionEffectsCatalog (operación EXPENSES) para
-        // aprobar/rechazar. No sustituye la validación del backend (fuente de verdad),
-        // solo evita un round-trip que sabemos que va a ser rechazado.
-        const { firmBalance, pendingIncomesBalance, pendingExpensesBalance } = useWalletLedgerStore.getState();
-        const availableBalance = firmBalance - pendingExpensesBalance + pendingIncomesBalance;
-        const requestedAmount = Number(get(creditFormState, 'creditAmount', 0));
-        if (requestedAmount > availableBalance) {
-            setCreditError(`Saldo insuficiente (disponible: $${availableBalance.toFixed(2)})`);
+        // El formulario no usa handleSubmit (arma el body a mano con useWatch,
+        // ver comentario en useForm<Credits> arriba), así que las reglas
+        // "required"/"validate" de los campos (chargeRules, monto, dirección,
+        // teléfono) nunca se disparaban solas ni marcaban nada en rojo. trigger()
+        // fuerza la validación de TODOS los campos de golpe — así, si mandas el
+        // form vacío, se ven en rojo todos los que faltan a la vez, no uno por uno.
+        const creditValid = await triggerCredit();
+        const customerValid = isExistingCustomer ? true : await triggerCustomer();
+        if (!creditValid || !customerValid) {
+            setCreditError('Completa los campos obligatorios marcados en rojo.');
             return;
         }
+
+        // El "Saldo insuficiente" ya lo cubre el rules.validate de creditAmount
+        // en CreditForm (usa el mismo useWalletLedgerStore), así que si
+        // triggerCredit() pasó, ya sabemos que el monto entra en el saldo.
 
         setLoadingSave(true);
         // Bloquea toda la pantalla para que no se pueda picar "Guardar" otra vez
@@ -285,6 +301,7 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
         loadingSave,
         creditOverlayStatus,
         creditError,
+        clearCreditError: () => setCreditError(null),
         handleOnSaveCredit,
         isExistingCustomer,
         isRenewal,
@@ -308,6 +325,7 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
             control: controlCredit,
             errors: errorsCredit,
             setValue: setValueCredit,
+            initialChargeFrequency: renewalLoan?.chargeFrequency,
         },
     };
 };

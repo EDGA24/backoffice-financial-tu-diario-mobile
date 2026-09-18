@@ -59,7 +59,7 @@ export interface DashboardContactTableProps {
   totalCount?: number;
   actionLabel?: string;
   onActionClick?: () => void;
-  onPagar?: (loan: LoanSummary, index: number, amount: number) => Promise<void> | void;
+  onPagar?: (loan: LoanSummary, index: number, amount: number) => Promise<boolean> | boolean;
   esPagado?: (loan: LoanSummary) => boolean;
   esElegibleParaRenovar?: (loan: LoanSummary) => boolean;
   employeeOptions?: EmployeeOption[];

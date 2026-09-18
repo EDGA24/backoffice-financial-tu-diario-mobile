@@ -26,6 +26,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
         control={control}
         errors={errors}
         required
+        rules={{ required: 'El nombre es obligatorio' }}
         label="Nombre(s)"
         placeholder="Nombre(s) del cliente"
       />
@@ -35,6 +36,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
         control={control}
         errors={errors}
         required
+        rules={{ required: 'El apellido es obligatorio' }}
         label="Apellido(s)"
         placeholder="Apellido(s) del cliente"
       />
@@ -44,6 +46,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
         control={control}
         errors={errors}
         required
+        rules={{ required: 'La dirección es obligatoria' }}
         label="Dirección"
         placeholder="Dirección completa del cliente"
       />
@@ -53,6 +56,12 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
         control={control}
         errors={errors}
         required
+        rules={{
+          required: 'El teléfono es obligatorio',
+          pattern: { value: /^\d+$/, message: 'Solo se permiten números' },
+        }}
+        type="tel"
+        digitsOnly
         label="Teléfono"
         placeholder="10 dígitos sin espacios"
       />
@@ -62,6 +71,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
         control={control}
         errors={errors}
         required
+        rules={{ required: 'La ubicación 3WORDS es obligatoria' }}
         label="Ubicación 3WORDS"
         placeholder="Adjunta aquí la ubicación de 3WORDS"
       />

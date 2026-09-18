@@ -34,7 +34,7 @@ type TrackRowState = 'pending' | 'active' | 'done' | 'error';
 // backend responda al instante (en local casi no se alcanzaría a ver el spin).
 const MIN_PAGO_DURATION_MS = 1800;
 const STEP_INFO_DELAY_MS = 1400;
-const STEP_CREDIT_PREP_DELAY_MS = 1600;
+const STEP_CREDIT_PREP_DELAY_MS = 3200;
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -43,7 +43,7 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // solo un spinner mudo y estático.
 const PAGO_MESSAGES = ['Conectando con tu wallet…', 'Verificando saldo disponible…', 'Registrando el pago…'];
 const INFO_MESSAGES = ['Sincronizando datos del cliente…'];
-const CREDITO_MESSAGES = ['Preparando el nuevo crédito…'];
+const CREDITO_MESSAGES = ['Preparando el nuevo crédito…', 'Redirigiendo a la vista de crear créditos…'];
 
 const useRotatingMessage = (active: boolean, messages: string[], intervalMs = 900): string | null => {
     const [index, setIndex] = useState(0);
@@ -227,6 +227,12 @@ export default function RenewalFlowModal({ open, loan, onClose, onReadyToCreateC
         }, 300);
     };
 
+    // Lo que falta para liquidar el crédito actual, no la cuota fija completa
+    // — si ya alcanzó el umbral de renovación con pagos menores a la cuota
+    // (ej. un pago grande al inicio), cobrar fixedCharge de más se pasaría
+    // del amountDue. Mismo cálculo que usa "Liquidar" en ContactPaymentList.
+    const restante = Math.max(0, (loan?.amountDue ?? 0) - (loan?.amountPaid ?? 0));
+
     const runTracking = async () => {
         if (!loan?.creditId) return;
         setStep('tracking');
@@ -238,7 +244,7 @@ export default function RenewalFlowModal({ open, loan, onClose, onReadyToCreateC
                 createPayment({
                     creditId: loan.creditId,
                     customerId: loan.customerId ?? '',
-                    total: loan.fixedCharge ?? 0,
+                    total: restante,
                 }),
                 wait(MIN_PAGO_DURATION_MS),
             ]);
@@ -278,12 +284,15 @@ export default function RenewalFlowModal({ open, loan, onClose, onReadyToCreateC
 
     const pagoMsg = useRotatingMessage(rowPago === 'active', PAGO_MESSAGES);
     const infoMsg = useRotatingMessage(rowInfo === 'active', INFO_MESSAGES);
-    const creditoMsg = useRotatingMessage(rowCredito === 'active', CREDITO_MESSAGES);
+    // Con 900ms de intervalo y STEP_CREDIT_PREP_DELAY_MS (3.2s), el primer
+    // mensaje se ve brevemente y "Redirigiendo..." se queda ~2.3s en pantalla
+    // — a propósito, es el mensaje que debe notarse antes de navegar.
+    const creditoMsg = useRotatingMessage(rowCredito === 'active', CREDITO_MESSAGES, 900);
     const activeMessage = pagoMsg ?? infoMsg ?? creditoMsg;
 
     if (!loan) return null;
 
-    const cuotaNumber = loan.fixedCharge ?? 0;
+    const cuotaNumber = restante;
     // Genérico a propósito: hoy solo el pago puede fallar de verdad (es el
     // único paso con llamada real al backend), pero el diseño reacciona a
     // CUALQUIER paso que termine en error, no solo al del pago.
@@ -345,8 +354,8 @@ export default function RenewalFlowModal({ open, loan, onClose, onReadyToCreateC
                         {step === 'intro' && (
                             <>
                                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                                    Para renovar este crédito se realizará el pago correspondiente a la cuota
-                                    pendiente y posteriormente se cargará la información del cliente para
+                                    Para renovar este crédito se registrará el pago de lo que falta para
+                                    liquidarlo y posteriormente se cargará la información del cliente para
                                     registrar el nuevo crédito.
                                 </Typography>
                                 <Stack spacing={1.5}>
@@ -396,7 +405,7 @@ export default function RenewalFlowModal({ open, loan, onClose, onReadyToCreateC
                                         <CountUpAmount value={cuotaNumber} />
                                     </Typography>
                                     <Typography variant="caption" sx={{ opacity: 0.85, position: 'relative' }}>
-                                        Cuota del crédito actual
+                                        Lo que falta para liquidar el crédito actual
                                     </Typography>
                                 </Box>
                                 <Typography variant="body2" color="text.secondary">
@@ -437,7 +446,7 @@ export default function RenewalFlowModal({ open, loan, onClose, onReadyToCreateC
                                 {!error && (
                                     <Box sx={{ textAlign: 'center' }}>
                                         <Fade in appear key={activeMessage ?? 'idle'} timeout={250}>
-                                            <Typography variant="caption" sx={{ fontWeight: 600, color: 'primary.main', display: 'block' }}>
+                                            <Typography sx={{ fontWeight: 700, fontSize: 15, color: 'primary.main', display: 'block', mb: 0.5 }}>
                                                 {activeMessage ?? ' '}
                                             </Typography>
                                         </Fade>

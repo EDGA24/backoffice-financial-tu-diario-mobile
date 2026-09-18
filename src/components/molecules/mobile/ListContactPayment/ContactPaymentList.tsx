@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import PaymentsRoundedIcon from '@mui/icons-material/PaymentsRounded';
+import PaidRoundedIcon from '@mui/icons-material/PaidRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
@@ -26,6 +27,9 @@ import LoanExpandedDetails from './LoanExpandedDetails';
 import PaymentHistoryModal from './PaymentHistoryModal';
 import PaymentAmountModal from './PaymentAmountModal';
 import RenewalFlowModal from './RenewalFlowModal';
+import TransactionStatusOverlay, {
+  type TransactionOverlayStatus,
+} from '../TransactionStatusOverlay/TransactionStatusOverlay';
 import type { LoanSummary, PaymentRecord } from '../DashboardContacTable/DashboardContacTable';
 import ArrowDropDownRoundedIcon from '@mui/icons-material/ArrowDropDownRounded';
 import AutorenewRoundedIcon from '@mui/icons-material/AutorenewRounded';
@@ -33,6 +37,9 @@ import { useNavigate } from 'react-router-dom';
 import { useCreditStore } from '@/stores/credits.store';
 import type { PaymentTable } from '@/types/PaymentTable';
 import { PENDING_APPROVAL_YELLOW, ON_TIME_PAYMENT_GREEN, RENEWAL_AVAILABLE_CYAN } from '@/shared/constants/statusColors';
+
+// Cuánto se queda visible el aviso de "éxito" antes de ocultarse solo.
+const SUCCESS_OVERLAY_DURATION_MS = 1600;
 
 const PAYMENT_STATUS_MAP: Record<string, PaymentRecord['status']> = {
   approved: 'pagado',
@@ -70,7 +77,7 @@ const mapPaymentToRecord = (payment: PaymentTable, index: number): PaymentRecord
 
 export interface ContactPaymentListProps {
   loans: LoanSummary[];
-  onPagar?: (loan: LoanSummary, index: number, amount: number) => Promise<void> | void;
+  onPagar?: (loan: LoanSummary, index: number, amount: number) => Promise<boolean> | boolean;
   esPagado?: (loan: LoanSummary) => boolean;
   esElegibleParaRenovar?: (loan: LoanSummary) => boolean;
   emptyMessage?: string;
@@ -87,7 +94,9 @@ export default function ContactPaymentList({
   const [pagandoIndex, setPagandoIndex] = useState<number | null>(null);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [loanEnModal, setLoanEnModal] = useState<LoanSummary | null>(null);
-  const [loanEnPagoModal, setLoanEnPagoModal] = useState<{ loan: LoanSummary; index: number } | null>(null);
+  const [loanEnPagoModal, setLoanEnPagoModal] = useState<{ loan: LoanSummary; index: number; mode: 'pago' | 'liquidar' } | null>(null);
+  const [pagoError, setPagoError] = useState<string | null>(null);
+  const [pagoOverlayStatus, setPagoOverlayStatus] = useState<TransactionOverlayStatus>(null);
   const [loanEnRenovacionModal, setLoanEnRenovacionModal] = useState<LoanSummary | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [menuIndex, setMenuIndex] = useState<number | null>(null);
@@ -119,16 +128,43 @@ export default function ContactPaymentList({
   ) => {
     e.stopPropagation();
     handleCerrarMenuAcciones();
-    setLoanEnPagoModal({ loan, index });
+    setPagoError(null);
+    setLoanEnPagoModal({ loan, index, mode: 'pago' });
+  };
+
+  // Mismo modal/flujo de pago que "Pagar" (mismo onPagar, mismo endpoint) —
+  // solo cambia a que PaymentAmountModal precarga lo que falta del crédito
+  // (amountDue - amountPaid) en vez de la cuota fija.
+  const handleAbrirModalLiquidar = (
+    e: React.MouseEvent,
+    loan: LoanSummary,
+    index: number
+  ) => {
+    e.stopPropagation();
+    handleCerrarMenuAcciones();
+    setPagoError(null);
+    setLoanEnPagoModal({ loan, index, mode: 'liquidar' });
   };
 
   const handleConfirmarPago = async (amount: number) => {
     if (!loanEnPagoModal || pagandoIndex !== null || !onPagar) return;
     const { loan, index } = loanEnPagoModal;
+    setPagoError(null);
     try {
       setPagandoIndex(index);
-      await onPagar(loan, index, amount);
+      const ok = await onPagar(loan, index, amount);
+      if (!ok) {
+        // Se queda el modal abierto con el monto capturado, para reintentar
+        // sin tener que volver a escribirlo.
+        setPagoError('No se pudo registrar el pago. Intenta de nuevo.');
+        return;
+      }
       setLoanEnPagoModal(null);
+      setPagoOverlayStatus('success');
+      setTimeout(() => setPagoOverlayStatus(null), SUCCESS_OVERLAY_DURATION_MS);
+    } catch (error) {
+      console.error('Error al registrar el pago:', error);
+      setPagoError('No se pudo registrar el pago. Intenta de nuevo.');
     } finally {
       setPagandoIndex(null);
     }
@@ -220,10 +256,14 @@ export default function ContactPaymentList({
           const pagoATiempo = loan.transactionPaymentStatusTemp === 'onTime';
           const key = `${loan.phone}-${loan.date}-${i}`;
           const estaExpandido = expandedKey === key;
-          // pagoPendiente bloquea "Pagar"/"Renovar" mientras el último pago
-          // siga sin aprobar — si no, se puede seguir registrando pagos
-          // encima de uno que ya está esperando aprobación.
-          const disabledAcciones = yaPagado || estaPagando || pagoPendiente;
+          // mientras el anterior sigue sin aprobar, lo cual es el flujo
+          // normal del día (se aprueban en bloque hasta las 5pm). El bloqueo
+          // por pago pendiente solo aplica a "Renovar" (ver esElegibleParaRenovar
+          // en useCreditsDashboardState.tsx), para evitar apilar renovaciones.
+          const disabledAcciones = yaPagado || estaPagando;
+          // Lo que falta por pagar del crédito completo — mismos valores que
+          // ya trae el crédito (amountDue/amountPaid), sin llamar nada más.
+          const restante = Math.max(0, (loan.amountDue ?? 0) - (loan.amountPaid ?? 0));
 
           return (
             <Card
@@ -367,6 +407,23 @@ export default function ContactPaymentList({
                     </MenuItem>
 
                     <Tooltip
+                      title={restante > 0 ? '' : 'Este crédito ya está liquidado'}
+                      placement="left"
+                    >
+                      <span>
+                        <MenuItem
+                          onClick={(e) => handleAbrirModalLiquidar(e, loan, i)}
+                          disabled={restante <= 0}
+                        >
+                          <ListItemIcon>
+                            <PaidRoundedIcon fontSize="small" />
+                          </ListItemIcon>
+                          <ListItemText>Liquidar</ListItemText>
+                        </MenuItem>
+                      </span>
+                    </Tooltip>
+
+                    <Tooltip
                       title={puedeRenovar ? '' : buildRenovacionTooltip(loan)}
                       placement="left"
                     >
@@ -409,10 +466,17 @@ export default function ContactPaymentList({
       <PaymentAmountModal
         open={loanEnPagoModal !== null}
         loan={loanEnPagoModal?.loan ?? null}
+        mode={loanEnPagoModal?.mode ?? 'pago'}
         loading={pagandoIndex !== null}
-        onClose={() => setLoanEnPagoModal(null)}
+        error={pagoError}
+        onClose={() => {
+          setLoanEnPagoModal(null);
+          setPagoError(null);
+        }}
         onConfirm={handleConfirmarPago}
       />
+
+      <TransactionStatusOverlay status={pagoOverlayStatus} successLabel="¡Pago registrado!" />
 
       <RenewalFlowModal
         open={loanEnRenovacionModal !== null}

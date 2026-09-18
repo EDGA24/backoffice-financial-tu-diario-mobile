@@ -4,7 +4,12 @@ import { useAuthStore } from '@/stores/auth.store';
 const instance = axios.create({
     headers: {
         "Content-type": "application/json"
-    }
+    },
+    // Sin esto, si un servicio está caído y la conexión se queda "colgada"
+    // en vez de rechazarse al instante, la promesa nunca resuelve ni
+    // rechaza — el try/catch de quien llama nunca se dispara y la pantalla
+    // se queda cargando para siempre, sin mostrar ningún error.
+    timeout: 15000,
 })
 
 instance.interceptors.request.use((config) => {

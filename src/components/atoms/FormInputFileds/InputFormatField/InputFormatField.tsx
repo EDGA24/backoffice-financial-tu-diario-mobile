@@ -16,6 +16,10 @@ export interface InputFormatFieldProps {
   rules?: {};
   startIcon?: React.ReactNode;
   disabled?: boolean;
+  // Filtra en cada tecleo cualquier caracter que no sea dígito — para campos
+  // como teléfono, que deben quedar como string (no como number, se pierden
+  // ceros a la izquierda) pero sin aceptar letras.
+  digitsOnly?: boolean;
 }
 
 const mobileFieldSx = {
@@ -44,6 +48,7 @@ const InputFormatField: React.FC<InputFormatFieldProps> = ({
   rules = {},
   startIcon,
   disabled = false,
+  digitsOnly = false,
 }) => {
   const isDate = type === 'date';
   const isNumber = type === 'number';
@@ -60,7 +65,11 @@ const InputFormatField: React.FC<InputFormatFieldProps> = ({
           value={field.value ?? ''}
           onChange={(e) => {
             const raw = e.target.value;
-            // type="number" en el <input> solo restringe qué se puede teclear 
+            if (digitsOnly) {
+              field.onChange(raw.replace(/\D/g, ''));
+              return;
+            }
+            // type="number" en el <input> solo restringe qué se puede teclear
             // Number(...) — mejor convertir aquí una sola vez, de raíz.
             field.onChange(isNumber && raw !== '' ? Number(raw) : raw);
           }}
@@ -83,6 +92,7 @@ const InputFormatField: React.FC<InputFormatFieldProps> = ({
                   ),
                 }
               : undefined,
+            ...(digitsOnly ? { htmlInput: { inputMode: 'numeric' } } : {}),
           }}
           sx={{ ...mobileFieldSx, ...sx }}
         />

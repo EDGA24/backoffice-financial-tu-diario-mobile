@@ -212,17 +212,20 @@ const useCreditsDashboardState = () => {
   // (createPaymentsByEmployee) y lo marca "pending" de forma optimista aquí
   // mismo, para no esperar al próximo refetch — getPaymentByCredit (el que sí
   // trae los pagos reales) no se vuelve a pedir hasta que cambie la página.
-  const handlePagar = async (loan: LoanSummary, _index: number, amount: number) => {
-    if (!loan.creditId) return;
+  const handlePagar = async (loan: LoanSummary, _index: number, amount: number): Promise<boolean> => {
+    if (!loan.creditId) return false;
     const creditId = loan.creditId;
 
-    await createPayment({
+    const ok = await createPayment({
       creditId,
       customerId: loan.customerId ?? '',
       total: amount,
     });
 
+    if (!ok) return false;
+
     setPagosPendientes((prev) => ({ ...prev, [creditId]: true }));
+    return true;
   };
 
   const loans: LoanSummary[] = creditsData.records.map((credit) =>

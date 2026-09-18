@@ -30,6 +30,10 @@ export interface ChargeRulesAutocompleteFieldProps {
   // Cobrador: no puede tocar periodos/renovación/comisión a mano, solo elegir
   // otra regla completa arriba (Frecuencia). Admin sí puede editar cada valor.
   readOnly?: boolean;
+  // Renovación: la regla completa (incluida la Frecuencia de arriba) viene
+  // fija del crédito que se está renovando — nadie, ni admin, la puede
+  // cambiar aquí. Distinto de readOnly, que solo bloquea el detalle.
+  disabled?: boolean;
 }
 
 function ReadOnlyRow({ label, value }: { label: string; value: string }) {
@@ -68,8 +72,12 @@ const ChargeRulesAutocompleteField: React.FC<ChargeRulesAutocompleteFieldProps> 
   rules = {},
   sx = {},
   readOnly = false,
+  disabled = false,
 }) => {
   const fieldError = get(errors, name);
+  // En renovación el detalle también se ve fijo, sin importar el rol — la
+  // regla ya viene del crédito original, no hay nada que editar.
+  const effectiveReadOnly = readOnly || disabled;
 
   return (
     <Controller
@@ -83,6 +91,7 @@ const ChargeRulesAutocompleteField: React.FC<ChargeRulesAutocompleteFieldProps> 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             <Autocomplete
               disablePortal
+              disabled={disabled}
               options={options}
               value={selectedOption}
               getOptionLabel={(option) => option.label}
@@ -99,7 +108,11 @@ const ChargeRulesAutocompleteField: React.FC<ChargeRulesAutocompleteFieldProps> 
                   label={label}
                   required={required}
                   error={!!fieldError}
-                  helperText={(fieldError?.message as string) ?? ' '}
+                  helperText={
+                    disabled
+                      ? 'Viene fija del crédito que se está renovando'
+                      : (fieldError?.message as string) ?? ' '
+                  }
                 />
               )}
               sx={{ ...mobileFieldSx, ...sx }}
@@ -119,12 +132,14 @@ const ChargeRulesAutocompleteField: React.FC<ChargeRulesAutocompleteFieldProps> 
                 }}
               >
                 <Typography variant="caption" color="text.secondary">
-                  {readOnly
-                    ? 'Estos valores vienen fijos con la regla seleccionada  para cambiarlos, elige otra opción arriba'
-                    : 'Puedes ajustar estos valores si lo necesitas'}
+                  {disabled
+                    ? 'Estos valores vienen fijos del crédito que se está renovando'
+                    : effectiveReadOnly
+                      ? 'Estos valores vienen fijos con la regla seleccionada  para cambiarlos, elige otra opción arriba'
+                      : 'Puedes ajustar estos valores si lo necesitas'}
                 </Typography>
 
-                {readOnly ? (
+                {effectiveReadOnly ? (
                   <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
                     <ReadOnlyRow
                       label="Frecuencia"

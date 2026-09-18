@@ -1,10 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Alert, Box, Typography } from '@mui/material';
+import { Alert, Box, Snackbar, Typography } from '@mui/material';
 import FormScreenHeader from '@/components/organisms/mobile/FormscreenHeader/FormscreenHeader';
 import CustomerForm from '@/components/molecules/mobile/Forms/CustomerForm/CustomerForm';
 import CreditForm from '@/components/molecules/mobile/Forms/CreditForm/CreditForm';
-import FormActionBar from '@/components/molecules/mobile/FormActionBar/FormActionBar';
+import FormActionBar, { BOTTOM_NAV_HEIGHT } from '@/components/molecules/mobile/FormActionBar/FormActionBar';
 import AutocompleteFormatField from '@/components/atoms/FormInputFileds/AutocompleteFormatField/AutocompleteFormatField';
 import CustomerSummaryCard from '@/components/molecules/mobile/CustomerSummaryCard/CustomerSummaryCard';
 import TransactionStatusOverlay from '@/components/molecules/mobile/TransactionStatusOverlay/TransactionStatusOverlay';
@@ -19,6 +19,7 @@ const CreditsCustomerContainer = () => {
     loadingSave,
     creditOverlayStatus,
     creditError,
+    clearCreditError,
     isExistingCustomer,
     isRenewal,
     handleOnSaveCredit,
@@ -37,12 +38,6 @@ const CreditsCustomerContainer = () => {
             ? 'Este crédito se creará para el cliente que está renovando.'
             : 'Todos los campos marcados son obligatorios'}
         </Typography>
-
-        {creditError && (
-          <Alert severity="error" sx={{ mt: -1 }}>
-            {creditError}
-          </Alert>
-        )}
 
         {!isRenewal && (
           <AutocompleteFormatField
@@ -74,6 +69,24 @@ const CreditsCustomerContainer = () => {
         loadingLabel="Procesando crédito…"
         successLabel="¡Operación exitosa!"
       />
+
+      {/* Flotante junto al botón de guardar — así no depende de que el
+          usuario esté hasta arriba del formulario para verlo. */}
+      <Snackbar
+        open={Boolean(creditError)}
+        onClose={clearCreditError}
+        autoHideDuration={6000}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ bottom: `${BOTTOM_NAV_HEIGHT + 88}px !important`, px: 2 }}
+      >
+        <Alert
+          severity="error"
+          onClose={clearCreditError}
+          sx={{ borderRadius: 3, boxShadow: 4, width: '100%' }}
+        >
+          {creditError}
+        </Alert>
+      </Snackbar>
     </React.Fragment>
   );
 };
