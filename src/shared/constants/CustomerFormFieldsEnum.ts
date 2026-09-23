@@ -7,5 +7,7 @@ export enum CustomerFormContactEnum {
     NAME = "contact.name",
     LAST_NAME = "contact.lastName",
     PHONE_NUMBER = "contact.phoneNumber",
-    ADRESS = "contact.address"
+    ADRESS = "contact.address",
+    UBICATION_LATITUDE = "contact.ubication.latitude",
+    UBICATION_LONGITUDE = "contact.ubication.longitude"
 }

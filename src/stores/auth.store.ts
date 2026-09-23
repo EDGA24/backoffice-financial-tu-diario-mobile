@@ -9,8 +9,8 @@ import { EmployeeUser } from '@/types/EmployeeUser';
 import { useWalletLedgerStore } from './walletLedger.store';
 import { isJwtExpired } from '@/shared/utils/jwtUtils';
 
-// const BASE_URL = "https://credit-saas-gateway.onrender.com/authorizer";
-const BASE_URL = "http://localhost:4000/authorizer";
+const BASE_URL = "https://credit-saas-gateway.onrender.com/authorizer";
+// const BASE_URL = "http://localhost:4000/authorizer";
 
 interface AuthStoreState {
     token: string,

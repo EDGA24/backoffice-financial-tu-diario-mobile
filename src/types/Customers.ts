@@ -12,4 +12,10 @@ export interface Contact {
     lastName?:    string;
     name?:        string;
     phoneNumber?: string;
+    ubication?:   Ubication;
+}
+
+export interface Ubication {
+    latitude?:  string;
+    longitude?: string;
 }

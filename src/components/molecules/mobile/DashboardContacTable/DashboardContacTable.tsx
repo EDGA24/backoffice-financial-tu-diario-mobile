@@ -33,6 +33,12 @@ export interface LoanSummary {
   creditId?: string;
   address?: string;
   threeWordsUbication?: string;
+  // Coordenadas GPS capturadas en el form de alta (LocationPickerField) —
+  // ausentes en clientes creados antes de que existiera ese campo.
+  ubication?: {
+    latitude?: string;
+    longitude?: string;
+  };
   fixedCharge?: number;
   // Ya no lo usa LoanExpandedDetails (la barra de progreso ahora se calcula
   // con amountPaid/amountDue, que ya vienen con el crédito).

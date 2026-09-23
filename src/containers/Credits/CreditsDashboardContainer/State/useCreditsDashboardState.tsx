@@ -78,6 +78,8 @@ const mapCreditToLoanSummary = (
 
   const direccionCliente = get(customer, 'contact.address', '');
   const ubicacionCliente = get(customer, 'threeWordsUbication', '');
+  const latitudCliente: string | undefined = get(customer, 'contact.ubication.latitude', undefined);
+  const longitudCliente: string | undefined = get(customer, 'contact.ubication.longitude', undefined);
 
   const empleadoId = credit.employeeBasicInfo?.userId ?? credit.userId;
 
@@ -96,6 +98,9 @@ const mapCreditToLoanSummary = (
     creditId: credit._id,
     address: direccionCliente,
     threeWordsUbication: ubicacionCliente,
+    ...(latitudCliente && longitudCliente
+      ? { ubication: { latitude: latitudCliente, longitude: longitudCliente } }
+      : {}),
     fixedCharge: credit.fixedCharge,
     // historialPagos se llena con datos reales al abrir el modal (ver
     // handleVerHistorial en ContactPaymentList.tsx) — aquí no hace falta
