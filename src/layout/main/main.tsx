@@ -42,12 +42,17 @@ const Main = () => {
         navigate('/login');
     };
 
+    const handleChangePassword = () => {
+        navigate('/change-password');
+    };
+
     return (
         <Box sx={{ pb: 9, backgroundColor: 'background.default', minHeight: '100vh' }}>
             <MobileDashboardHeader
                 userName={userName}
                 initials={getInitials(userName) || 'U'}
                 onLogoutClick={handleLogout}
+                onChangePasswordClick={handleChangePassword}
             />
 
             <main>

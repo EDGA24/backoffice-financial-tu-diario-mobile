@@ -2,6 +2,8 @@ import React from 'react';
 import { Controller } from 'react-hook-form';
 import type { FieldErrors } from 'react-hook-form';
 import { Autocomplete, Box, TextField, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { get } from 'lodash';
 import InputFormatField from '@/components/atoms/FormInputFileds/InputFormatField/InputFormatField';
 import AutocompleteFormatField from '@/components/atoms/FormInputFileds/AutocompleteFormatField/AutocompleteFormatField';
@@ -187,6 +189,32 @@ const ChargeRulesAutocompleteField: React.FC<ChargeRulesAutocompleteFieldProps> 
                       label="Tasa de comisión"
                       placeholder="%"
                     />
+                  </Box>
+                )}
+
+                {/* La regla trae firstCharge: al guardar, además del crédito se
+                    registra su primer pago (ver FirstChargeFlowModal). */}
+                {selectedOption.firstCharge && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      gap: 1.25,
+                      alignItems: 'flex-start',
+                      borderRadius: 3,
+                      p: 1.5,
+                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                      border: (theme) => `1px solid ${alpha(theme.palette.primary.main, 0.25)}`,
+                    }}
+                  >
+                    <InfoOutlinedIcon sx={{ color: 'primary.main', fontSize: 20, mt: 0.1, flexShrink: 0 }} />
+                    <Box>
+                      <Typography sx={{ fontWeight: 700, fontSize: 13.5, color: 'primary.main' }}>
+                        Incluye primer pago
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                        Al guardar el crédito se registrará automáticamente su primer pago (una cuota).
+                      </Typography>
+                    </Box>
                   </Box>
                 )}
               </Box>

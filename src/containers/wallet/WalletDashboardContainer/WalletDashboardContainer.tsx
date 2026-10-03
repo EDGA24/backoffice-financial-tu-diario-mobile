@@ -6,6 +6,7 @@ import TransactionsFilterSheet from '@/components/molecules/mobile/Filter/Transa
 import FilterBottomSheet from '@/components/molecules/mobile/Filter/FilterBottomSheet/FilterBottomSheet';
 import TransactionForm from '@/components/molecules/mobile/Forms/TransactionForm/TransactionForm';
 import TransactionStatusOverlay from '@/components/molecules/mobile/TransactionStatusOverlay/TransactionStatusOverlay';
+import TransactionDetailTicket from '@/components/molecules/mobile/TransactionDetailTicket/TransactionDetailTicket';
 import LoanSearchBar from '@/components/molecules/mobile/LoanSearchBar/LoanSearchBar';
 import { Alert, Box } from '@mui/material';
 
@@ -30,6 +31,11 @@ const WalletDashboardContainer = () => {
         hasMoreTransactions,
         loadingMoreTransactions,
         handleLoadMoreTransactions,
+        selectedTransaction,
+        handleTransactionClick,
+        handleCloseTransactionDetail,
+        handleViewCredit,
+        companyWhatsAppPhone,
         filter,
         handleApplyFilter,
         searchTerm,
@@ -76,6 +82,15 @@ const WalletDashboardContainer = () => {
                 hasMore={hasMoreTransactions}
                 loadingMore={loadingMoreTransactions}
                 onLoadMore={handleLoadMoreTransactions}
+                onTransactionClick={handleTransactionClick}
+            />
+
+            <TransactionDetailTicket
+                open={Boolean(selectedTransaction)}
+                transaction={selectedTransaction}
+                onClose={handleCloseTransactionDetail}
+                whatsappPhone={companyWhatsAppPhone}
+                onViewCredit={handleViewCredit}
             />
 
             <FilterBottomSheet

@@ -8,6 +8,11 @@ export interface MobileDashboardHeaderProps {
   userName: string;
   initials: string;
   onLogoutClick?: () => void;
+  // La tuerca de "Cambiar contraseña" que usaba esto está oculta por ahora
+  // para todos los roles (pendiente: mostrarla solo cuando NO sea
+  // creditCollector) — se deja el prop y la ruta /change-password intactos
+  // para reactivarla fácil más adelante.
+  onChangePasswordClick?: () => void;
 }
 
 const MobileDashboardHeader: React.FC<MobileDashboardHeaderProps> = ({

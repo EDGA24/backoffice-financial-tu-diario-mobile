@@ -30,6 +30,19 @@
                 },
                 "phoneNumber": {
                     "type": "string"
+                },
+                "ubication": {
+                    "type": "object",
+                    "title": "Ubication",
+                    "additionalProperties": false,
+                    "properties": {
+                        "latitude": {
+                            "type": "string"
+                        },
+                        "longitude": {
+                            "type": "string"
+                        }
+                    }
                 }
             }
         },

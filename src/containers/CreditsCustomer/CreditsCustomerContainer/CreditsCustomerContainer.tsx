@@ -8,6 +8,9 @@ import FormActionBar, { BOTTOM_NAV_HEIGHT } from '@/components/molecules/mobile/
 import AutocompleteFormatField from '@/components/atoms/FormInputFileds/AutocompleteFormatField/AutocompleteFormatField';
 import CustomerSummaryCard from '@/components/molecules/mobile/CustomerSummaryCard/CustomerSummaryCard';
 import TransactionStatusOverlay from '@/components/molecules/mobile/TransactionStatusOverlay/TransactionStatusOverlay';
+import CreditSuccessTicket from '@/components/molecules/mobile/CreditSuccessTicket/CreditSuccessTicket';
+import FirstChargeFlowModal from '@/components/molecules/mobile/FirstChargeFlowModal/FirstChargeFlowModal';
+import AvalField from '@/components/molecules/mobile/AvalField/AvalField';
 
 import { useCreditsCustomerContainerState } from './state/useCreditsCustomerContainerState';
 
@@ -23,6 +26,13 @@ const CreditsCustomerContainer = () => {
     isExistingCustomer,
     isRenewal,
     handleOnSaveCredit,
+    creditSuccessTicket,
+    showCreditTicket,
+    canSendCreditWhatsApp,
+    handleSendCreditWhatsApp,
+    handleContinueAfterCredit,
+    firstChargeFlow,
+    avalField,
   } = useCreditsCustomerContainerState();
   console.log("CreditsCustomerContainer-credit: ", credit)
 
@@ -59,16 +69,45 @@ const CreditsCustomerContainer = () => {
 
         {!isExistingCustomer && <CustomerForm {...customer} />}
 
+        {/* El aval se guarda junto con el cliente nuevo (el backend lo
+            registra al crear el cliente), por eso solo aparece aquí. */}
+        {!isExistingCustomer && <AvalField {...avalField} />}
+
         <CreditForm {...credit} />
       </Box>
 
       <FormActionBar label="Guardar crédito" isLoading={loadingSave} onClick={handleOnSaveCredit} />
 
+      {/* Secuencia: "loading" (spinner) -> breve "¡Operación exitosa!" del
+          overlay genérico -> recién ahí aparece el ticket con el desglose
+          (showCreditTicket, activado con un pequeño delay desde el estado). */}
       <TransactionStatusOverlay
         status={creditOverlayStatus}
         loadingLabel="Procesando crédito…"
         successLabel="¡Operación exitosa!"
       />
+
+      {/* Renovación con primer cobro (firstCharge): en vez del overlay
+          genérico, un proceso de 2 pasos (crédito + primer pago) con el mismo
+          diseño que RenewalFlowModal; al terminar se muestra el ticket. */}
+      <FirstChargeFlowModal {...firstChargeFlow} />
+
+      {creditSuccessTicket && (
+        <CreditSuccessTicket
+          open={showCreditTicket}
+          customerName={creditSuccessTicket.customerName}
+          creditAmount={creditSuccessTicket.creditAmount}
+          chargeAmount={creditSuccessTicket.chargeAmount}
+          chargeFrequencyLabel={creditSuccessTicket.chargeFrequencyLabel}
+          chargePeriods={creditSuccessTicket.chargePeriods}
+          createdAt={creditSuccessTicket.createdAt}
+          status={creditSuccessTicket.status}
+          firstChargeAmount={creditSuccessTicket.firstChargeAmount}
+          canSendWhatsApp={canSendCreditWhatsApp}
+          onSendWhatsApp={handleSendCreditWhatsApp}
+          onContinue={handleContinueAfterCredit}
+        />
+      )}
 
       {/* Flotante junto al botón de guardar — así no depende de que el
           usuario esté hasta arriba del formulario para verlo. */}

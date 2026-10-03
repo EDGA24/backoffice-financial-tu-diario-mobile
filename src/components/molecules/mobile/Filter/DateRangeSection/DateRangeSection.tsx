@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Box, FormControlLabel, IconButton, Radio, RadioGroup, TextField, Typography } from '@mui/material';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
+import { toIso } from '@/shared/constants/catalogs/charge_frequency_date_range_catalog';
 
 export interface DateRange {
     startDate: string; // "YYYY-MM-DD"
@@ -39,7 +40,13 @@ const PRESET_OPTIONS: { key: PeriodPreset; label: string }[] = [
     { key: 'ULTIMO_ANIO', label: 'Último año' },
 ];
 
-const toIso = (d: Date) => d.toISOString().slice(0, 10);
+// Zona horaria fija del negocio (México, sin horario de verano desde 2022) —
+// ver dateRangeTimezone.ts. NO se puede usar d.toISOString().slice(0,10) a
+// secas: eso da la fecha calendario en UTC, no en México. Pasadas las 6pm
+// hora de México (cuando UTC ya cruzó a medianoche), "Hoy" calculaba MAÑANA
+// en vez de hoy, y el filtro terminaba buscando un día que aún no ocurre —
+// por eso no traía ningún resultado.
+
 
 // Traduce un preset a fechas concretas — reutilizable donde se necesite.
 export const presetToRange = (preset: PeriodPreset): DateRange | null => {

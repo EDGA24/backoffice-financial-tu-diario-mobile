@@ -8,6 +8,7 @@ import { usePagination } from '@/hooks/usePagination';
 import { useLoanSearch } from '@/hooks/useLoanSearch';
 import { useEmployeeFilter } from '@/hooks/useEmployeeFilter';
 import type { EmployeeOption } from '@/shared/constants/catalogs/employees.catalog';
+import type { PaymentCategoryEnum } from '@/shared/constants/PaymentCategoryEnum';
 
 export interface PaymentRecord {
   id: string;
@@ -33,6 +34,12 @@ export interface LoanSummary {
   creditId?: string;
   address?: string;
   threeWordsUbication?: string;
+  // Coordenadas GPS capturadas en el form de alta (LocationPickerField) —
+  // ausentes en clientes creados antes de que existiera ese campo.
+  ubication?: {
+    latitude?: string;
+    longitude?: string;
+  };
   fixedCharge?: number;
   // Ya no lo usa LoanExpandedDetails (la barra de progreso ahora se calcula
   // con amountPaid/amountDue, que ya vienen con el crédito).
@@ -59,7 +66,7 @@ export interface DashboardContactTableProps {
   totalCount?: number;
   actionLabel?: string;
   onActionClick?: () => void;
-  onPagar?: (loan: LoanSummary, index: number, amount: number) => Promise<boolean> | boolean;
+  onPagar?: (loan: LoanSummary, index: number, amount: number, paymentCategory?: PaymentCategoryEnum) => Promise<boolean> | boolean;
   esPagado?: (loan: LoanSummary) => boolean;
   esElegibleParaRenovar?: (loan: LoanSummary) => boolean;
   employeeOptions?: EmployeeOption[];

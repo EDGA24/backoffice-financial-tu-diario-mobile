@@ -1,7 +1,7 @@
 import React from 'react';
 import { Controller } from 'react-hook-form';
 import type { FieldErrors } from 'react-hook-form';
-import { TextField, InputAdornment } from '@mui/material';
+import { TextField, InputAdornment, IconButton } from '@mui/material';
 import { get } from 'lodash';
 
 export interface InputFormatFieldProps {
@@ -20,6 +20,11 @@ export interface InputFormatFieldProps {
   // como teléfono, que deben quedar como string (no como number, se pierden
   // ceros a la izquierda) pero sin aceptar letras.
   digitsOnly?: boolean;
+  // Ícono al final del campo (ej. mostrar/ocultar contraseña). Si se manda
+  // onEndIconClick, se renderiza como botón tocable; si no, es solo decorativo.
+  endIcon?: React.ReactNode;
+  onEndIconClick?: () => void;
+  endIconAriaLabel?: string;
 }
 
 const mobileFieldSx = {
@@ -49,6 +54,9 @@ const InputFormatField: React.FC<InputFormatFieldProps> = ({
   startIcon,
   disabled = false,
   digitsOnly = false,
+  endIcon,
+  onEndIconClick,
+  endIconAriaLabel,
 }) => {
   const isDate = type === 'date';
   const isNumber = type === 'number';
@@ -85,11 +93,32 @@ const InputFormatField: React.FC<InputFormatFieldProps> = ({
           helperText={(fieldError?.message as string) ?? ' '}
           slotProps={{
             ...(isDate ? { inputLabel: { shrink: true } } : {}),
-            input: startIcon
+            input: (startIcon || endIcon)
               ? {
-                  startAdornment: (
-                    <InputAdornment position="start">{startIcon}</InputAdornment>
-                  ),
+                  ...(startIcon
+                    ? { startAdornment: <InputAdornment position="start">{startIcon}</InputAdornment> }
+                    : {}),
+                  ...(endIcon
+                    ? {
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            {onEndIconClick ? (
+                              <IconButton
+                                onClick={onEndIconClick}
+                                edge="end"
+                                size="small"
+                                aria-label={endIconAriaLabel}
+                                tabIndex={-1}
+                              >
+                                {endIcon}
+                              </IconButton>
+                            ) : (
+                              endIcon
+                            )}
+                          </InputAdornment>
+                        ),
+                      }
+                    : {}),
                 }
               : undefined,
             ...(digitsOnly ? { htmlInput: { inputMode: 'numeric' } } : {}),

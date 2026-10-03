@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware';
 import { customSessionStorage } from './storages/session-storage.storage';
 import axios from "../shared/utils/axiosUtils"
-import { get } from 'lodash';
+import { get, isEmpty } from 'lodash';
 import { CreditTable } from '@/types/CreditTable';
 import { Credits } from '@/types/Credits';
 import { Customers } from '@/types/Customers';
@@ -16,6 +16,7 @@ import { WalletTable } from '@/types/WalletTable';
 import { GetCreditTotalsRequest, GetCreditTotalsResponse } from '@/types/GetCreditTotalsRequest';
 import { useWalletLedgerStore } from './walletLedger.store';
 import { useAuthStore } from './auth.store';
+import { PaymentCategoryEnum } from '@/shared/constants/PaymentCategoryEnum';
 
 // const BASE_URL = "https://credit-saas-gateway.onrender.com/credits";
 const BASE_URL = "http://localhost:4001/credits";
@@ -39,8 +40,8 @@ interface CreditStoreState {
     }) => void,
     searchCreditsByEmployeeData: (request: SearchCreditsByEmployeeRequest) => Promise<void>,
     searchCustomersByEmployee: (request: SearchCustomersByEmployeeRequest) => Promise<{ total: number, records: CustomerSearchResult[] }>,
-    createCredit: (request: { customer?: Customers, credit: Credits }) => Promise<boolean>,
-    createPayment: (request: { creditId: string, customerId: string, total: number }) => Promise<boolean>,
+    createCredit: (request: { customer?: Customers, credit: Credits }) => Promise<{ ok: boolean, creditId: string, customerId: string }>,
+    createPayment: (request: { creditId: string, customerId: string, customerName?: string, total: number, paymentCategory?: PaymentCategoryEnum }) => Promise<boolean>,
     getPaymentByCredit: (request: GetPaymentRequest) => Promise<{ total: number, records: PaymentTable[] }>,
     getWalletInfo: (request: GetWalletRequest) => Promise<{ total: number, records: WalletTable[] }>,
     getCreditTotals: (request: GetCreditTotalsRequest) => Promise<GetCreditTotalsResponse>
@@ -69,16 +70,21 @@ export const useCreditStore = create<CreditStoreState>()(
                 };
             },
             createCredit: async (request: { customer?: Customers, credit: Credits }) => {
-                const response = await axios.post<{ data: boolean }>(`${BASE_URL}/createCreditsByEmployee`, request);
-                const ok = get(response.data, "data", false);
+                // El backend regresa { creditId, customerId } — vacíos si no se pudo
+                // crear. "data" es un objeto (siempre truthy), por eso el éxito se
+                // decide por el creditId.
+                const response = await axios.post<{ data: { creditId: string, customerId: string } }>(`${BASE_URL}/createCreditsByEmployee`, request);
+                const creditId: string = get(response.data, "data.creditId", "");
+                const customerId: string = get(response.data, "data.customerId", "");
+                const ok = !isEmpty(creditId);
                 // Optimista: el desembolso sale de la wallet del user logueado,
                 // como egreso pendiente — no espera a volver a consultar el servidor.
                 if (ok) {
                     useWalletLedgerStore.getState().applyLocalCredit(get(request, "credit.creditAmount", 0));
                 }
-                return ok;
+                return { ok, creditId, customerId };
             },
-            createPayment: async (request: { creditId: string, customerId: string, total: number }) => {
+            createPayment: async (request: { creditId: string, customerId: string, customerName?: string, total: number, paymentCategory?: PaymentCategoryEnum }) => {
                 console.log("Total---:", request.total);
                 const response = await axios.post<{ data: boolean }>(`${BASE_URL}/createPaymentsByEmployee`, request);
                 const ok = get(response.data, "data", false);
@@ -120,7 +126,8 @@ export const useCreditStore = create<CreditStoreState>()(
                 return {
                     totalToCollect: get(response.data, "data[0].totalToCollect", 0),
                     totalCollected: get(response.data, "data[0].totalCollected", 0),
-                    totalPending: get(response.data, "data[0].totalPending", 0)
+                    totalPending: get(response.data, "data[0].totalPending", 0),
+                    totalOthers: get(response.data, "data[0].totalOthers", 0)
                 };
             }
         }),

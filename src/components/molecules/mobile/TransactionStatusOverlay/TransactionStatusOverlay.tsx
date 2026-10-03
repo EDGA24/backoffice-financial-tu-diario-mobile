@@ -9,6 +9,10 @@ export interface TransactionStatusOverlayProps {
   loadingLabel?: string;
   loadingSubLabel?: string;
   successLabel?: string;
+  // Slot opcional para botones extra bajo el mensaje de éxito (ej. "Enviar
+  // por WhatsApp" + "Continuar" al crear un crédito). Si no se manda, el
+  // overlay se comporta igual que antes (transacciones/pagos no lo usan).
+  successActions?: React.ReactNode;
 }
 
 // Bloquea toda la pantalla mientras se procesa la operación (para que no le
@@ -18,6 +22,7 @@ const TransactionStatusOverlay: React.FC<TransactionStatusOverlayProps> = ({
   loadingLabel = 'Procesando movimiento…',
   loadingSubLabel = 'No cierres ni presiones de nuevo',
   successLabel = '¡Movimiento exitoso!',
+  successActions,
 }) => {
   return (
     <Backdrop
@@ -45,6 +50,7 @@ const TransactionStatusOverlay: React.FC<TransactionStatusOverlayProps> = ({
         <>
           <CheckCircleRoundedIcon sx={{ fontSize: 56, color: 'success.light' }} />
           <Typography sx={{ fontWeight: 700, fontSize: 16 }}>{successLabel}</Typography>
+          {successActions}
         </>
       )}
     </Backdrop>

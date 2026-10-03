@@ -24,13 +24,24 @@ import type { LoanSummary, PaymentRecord } from '../DashboardContacTable/Dashboa
 import { PARTIAL_PAYMENT_YELLOW } from '@/shared/constants/statusColors';
 import ColorLegend from '../ColorLegend/ColorLegend';
 
-const HISTORY_LEGEND_ITEMS = [
-    {
-        color: PARTIAL_PAYMENT_YELLOW,
-        label: 'Pago incompleto',
-        description: 'El monto pagado fue menor a la cuota del crédito.',
-    },
-];
+const PARTIAL_LEGEND_ITEM = {
+    color: PARTIAL_PAYMENT_YELLOW,
+    label: 'Pago incompleto',
+    description: 'El monto pagado fue menor a la cuota del crédito.',
+};
+
+// Pago registrado en $0 = el cliente no pagó ese día (falta)
+const isFalta = (pago: PaymentRecord): boolean => pago.status !== 'cancelado' && !(pago.amount > 0);
+
+// Chip pequeño del encabezado (contador de pagos / faltas)
+const counterChipSx = (bgcolor: string) => ({
+    height: 20,
+    fontSize: 11,
+    fontWeight: 700,
+    bgcolor,
+    color: '#fff',
+    '& .MuiChip-label': { px: 1 },
+});
 
 export interface PaymentHistoryModalProps {
     open: boolean;
@@ -74,6 +85,17 @@ export default function PaymentHistoryModal({ open, onClose, loan }: PaymentHist
     if (!loan) return null;
 
     const historial = loan.historialPagos ?? [];
+    // Pagos = los que sí traen monto; faltas = los registrados en $0
+    const totalFaltas = historial.filter(isFalta).length;
+    const totalPagos = historial.filter((pago) => pago.status !== 'cancelado' && pago.amount > 0).length;
+    const legendItems = [
+        PARTIAL_LEGEND_ITEM,
+        {
+            color: theme.palette.error.main,
+            label: 'Falta',
+            description: 'El cliente no pagó ese día (pago registrado en $0).',
+        },
+    ];
 
     return (
         <Dialog
@@ -104,18 +126,18 @@ export default function PaymentHistoryModal({ open, onClose, loan }: PaymentHist
                         <Typography sx={{ fontWeight: 700, fontSize: 16 }}>
                             Historial de pagos
                         </Typography>
-                        {historial.length > 0 && (
+                        {totalPagos > 0 && (
                             <Chip
-                                label={`${historial.length} ${historial.length === 1 ? 'pago' : 'pagos'}`}
+                                label={`${totalPagos} ${totalPagos === 1 ? 'pago' : 'pagos'}`}
                                 size="small"
-                                sx={{
-                                    height: 20,
-                                    fontSize: 11,
-                                    fontWeight: 700,
-                                    bgcolor: 'primary.main',
-                                    color: 'primary.contrastText',
-                                    '& .MuiChip-label': { px: 1 },
-                                }}
+                                sx={counterChipSx(theme.palette.primary.main)}
+                            />
+                        )}
+                        {totalFaltas > 0 && (
+                            <Chip
+                                label={`${totalFaltas} ${totalFaltas === 1 ? 'falta' : 'faltas'}`}
+                                size="small"
+                                sx={counterChipSx(theme.palette.error.main)}
                             />
                         )}
                     </Stack>
@@ -124,7 +146,7 @@ export default function PaymentHistoryModal({ open, onClose, loan }: PaymentHist
                     </Typography>
                 </Box>
                 <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', flexShrink: 0 }}>
-                    <ColorLegend items={HISTORY_LEGEND_ITEMS} />
+                    <ColorLegend items={legendItems} />
                     <IconButton onClick={onClose} size="small">
                         <CloseRoundedIcon />
                     </IconButton>
@@ -141,11 +163,16 @@ export default function PaymentHistoryModal({ open, onClose, loan }: PaymentHist
                 ) : (
                     <List disablePadding>
                         {historial.map((pago, idx) => {
-                            const config = STATUS_CONFIG[pago.status];
+                            const falta = isFalta(pago);
+                            // Falta (pago en $0): todo en rojo, con su propia etiqueta
+                            const config = falta
+                                ? { color: 'error.main', icon: <CancelRoundedIcon sx={{ fontSize: 18 }} />, label: 'Falta' }
+                                : STATUS_CONFIG[pago.status];
                             // Pago ya registrado pero por debajo de la cuota (fixedCharge)
                             // del crédito — se marca en amarillo, no cuenta como incumplido
                             // (eso es "atrasado"), solo como incompleto.
                             const pagoIncompleto =
+                                !falta &&
                                 pago.status === 'pagado' &&
                                 typeof loan.fixedCharge === 'number' &&
                                 loan.fixedCharge > 0 &&
@@ -165,11 +192,17 @@ export default function PaymentHistoryModal({ open, onClose, loan }: PaymentHist
                                             sx={{
                                                 width: 36,
                                                 height: 36,
-                                                bgcolor: pagoIncompleto ? alpha(PARTIAL_PAYMENT_YELLOW, 0.22) : 'action.hover',
+                                                bgcolor: pagoIncompleto
+                                                    ? alpha(PARTIAL_PAYMENT_YELLOW, 0.22)
+                                                    : falta ? alpha(theme.palette.error.main, 0.18) : 'action.hover',
                                                 color: pagoIncompleto ? '#8a6d00' : config.color,
                                                 ...(pagoIncompleto && {
                                                     border: `2px solid ${alpha(PARTIAL_PAYMENT_YELLOW, 0.9)}`,
                                                     boxShadow: `0 0 0 3px ${alpha(PARTIAL_PAYMENT_YELLOW, 0.15)}`,
+                                                }),
+                                                ...(falta && {
+                                                    border: `2px solid ${alpha(theme.palette.error.main, 0.85)}`,
+                                                    boxShadow: `0 0 0 3px ${alpha(theme.palette.error.main, 0.15)}`,
                                                 }),
                                             }}
                                         >

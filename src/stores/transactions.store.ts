@@ -12,6 +12,23 @@ import { Transactions } from '@/types/Transactions';
 // const BASE_URL = "https://credit-saas-gateway.onrender.com/transactions";
 const BASE_URL = "http://localhost:4003/transactions";
 
+// Mapea la transacción cruda del backend (con creditInfo[0] del join) a
+// TransactionTable.creditBasicInfo — trae el _id real del crédito para poder
+// navegar de la transacción a su crédito (mismo mapeo que ya usa el store web).
+const mapTransactionRecords = (records: any[]): TransactionTable[] =>
+    records.map((transaction: any) => {
+        const creditInfo = get(transaction, 'creditInfo[0]');
+        return {
+            ...transaction,
+            creditBasicInfo: creditInfo ? {
+                creditId: get(creditInfo, '_id', ''),
+                total: get(creditInfo, 'creditAmount', 0),
+                amountPaid: get(creditInfo, 'amountPaid', 0),
+                amountDue: get(creditInfo, 'amountDue', 0),
+            } : undefined,
+        };
+    });
+
 interface TransactionStoreState {
     transactionsData: {
         records: TransactionTable[],
@@ -37,7 +54,7 @@ export const useTransactionStore = create<TransactionStoreState>()(
                 const response = await axios.post<{ total: number, records: any[] }>(`${BASE_URL}/searchTransactions`, request);
                 set(() => ({
                     transactionsData: {
-                        records: get(response.data, "data.records", []),
+                        records: mapTransactionRecords(get(response.data, "data.records", [])),
                         total: get(response.data, "data.total", 0),
                         entityName: DashboardTableCatalogEnum.transactions
                     }
@@ -47,7 +64,7 @@ export const useTransactionStore = create<TransactionStoreState>()(
                  const response = await axios.post<{ total: number, records: any[] }>(`${BASE_URL}/SearchTransactionsByUser`, request);
                 set(() => ({
                     transactionsData: {
-                        records: get(response.data, "data.records", []),
+                        records: mapTransactionRecords(get(response.data, "data.records", [])),
                         total: get(response.data, "data.total", 0),
                         entityName: DashboardTableCatalogEnum.transactions
                     }

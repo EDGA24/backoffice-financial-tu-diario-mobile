@@ -11,6 +11,7 @@ export interface TransactionListItemProps {
   amount: string;
   kind: TransactionKind;
   isPending?: boolean;
+  onClick?: () => void;
 }
 
 const toneMap: Record<TransactionKind, { color: string; bg: string; sign: string }> = {
@@ -26,11 +27,13 @@ const TransactionListItem: React.FC<TransactionListItemProps> = ({
   amount,
   kind,
   isPending = false,
+  onClick,
 }) => {
   const tone = toneMap[kind];
 
   return (
     <Box
+      onClick={onClick}
       sx={{
         display: 'flex',
         alignItems: 'center',
@@ -40,6 +43,7 @@ const TransactionListItem: React.FC<TransactionListItemProps> = ({
         borderBottom: '1px solid',
         borderColor: 'divider',
         transition: 'background-color 0.15s ease',
+        cursor: onClick ? 'pointer' : 'default',
         '&:last-of-type': { borderBottom: 'none' },
         '&:active': { backgroundColor: 'action.hover' },
       }}

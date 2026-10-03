@@ -9,12 +9,17 @@ import { CreditTable } from '@/types/CreditTable';
 import { LoanStatus } from '@/components/atoms/StatusChip/StatusChip';
 import { ChargeFrequencyEnum } from '@/shared/constants/ChargeFrequencyEnum';
 import { resolveChargeFrequencyDateRange } from '@/shared/constants/catalogs/charge_frequency_date_range_catalog';
+import { PaymentCategoryEnum } from '@/shared/constants/PaymentCategoryEnum';
 import { get } from 'lodash';
 
 const ITEMS_PER_PAGE = 10;
 
 interface CreditsDashboardNavigationState {
   chargeFrequency?: string[];
+  // Navegación desde Transacciones hacia el crédito relacionado — llega SOLO
+  // uno de los dos, nunca ambos (ver UserRoleCatalogs.tsx en el backend).
+  creditId?: string;
+  transactionId?: string;
 }
 
 const CHARGE_FREQUENCY_LABELS: Record<string, string> = {
@@ -78,6 +83,8 @@ const mapCreditToLoanSummary = (
 
   const direccionCliente = get(customer, 'contact.address', '');
   const ubicacionCliente = get(customer, 'threeWordsUbication', '');
+  const latitudCliente: string | undefined = get(customer, 'contact.ubication.latitude', undefined);
+  const longitudCliente: string | undefined = get(customer, 'contact.ubication.longitude', undefined);
 
   const empleadoId = credit.employeeBasicInfo?.userId ?? credit.userId;
 
@@ -96,6 +103,9 @@ const mapCreditToLoanSummary = (
     creditId: credit._id,
     address: direccionCliente,
     threeWordsUbication: ubicacionCliente,
+    ...(latitudCliente && longitudCliente
+      ? { ubication: { latitude: latitudCliente, longitude: longitudCliente } }
+      : {}),
     fixedCharge: credit.fixedCharge,
     // historialPagos se llena con datos reales al abrir el modal (ver
     // handleVerHistorial en ContactPaymentList.tsx) — aquí no hace falta
@@ -116,14 +126,18 @@ const mapCreditToLoanSummary = (
     // cayó dentro de la ventana del periodo de cobro vigente (ver esPagoATiempo).
     transactionPaymentStatusTemp:
       (credit.transactionStatus === 'pending' || pagoPendiente || credit.lastPayment?.transactionStatus === 'pending') ? 'pending' :
-      (credit.transactionStatus === 'approved' && credit.lastPayment?.transactionStatus === 'approved' && esPagoATiempo(credit)) ? 'onTime' :
-      undefined,
+        (credit.transactionStatus === 'approved' && credit.lastPayment?.transactionStatus === 'approved' && esPagoATiempo(credit)) ? 'onTime' :
+          undefined,
   };
 };
 
 const useCreditsDashboardState = () => {
   const location = useLocation();
-  const { chargeFrequency: initialChargeFrequency } = (location.state ?? {}) as CreditsDashboardNavigationState;
+  const {
+    chargeFrequency: initialChargeFrequency,
+    creditId: navigationCreditId,
+    transactionId: navigationTransactionId,
+  } = (location.state ?? {}) as CreditsDashboardNavigationState;
 
   const { creditsData, searchCreditsByEmployeeData, createPayment, getCreditTotals } = useCreditStore();
   const creditorCompanyId = useAuthStore((state) => state.user?.creditorCompanyId ?? '');
@@ -144,15 +158,24 @@ const useCreditsDashboardState = () => {
   const [pagosPendientes, setPagosPendientes] = useState<Record<string, boolean>>({});
   // Totales agregados (por cobrar / cobrado / pendiente) que ahora vienen del
   // backend (getCreditTotals)
-  const [creditsTotals, setCreditsTotals] = useState({ totalToCollect: 0, totalCollected: 0, totalPending: 0 });
+  const [creditsTotals, setCreditsTotals] = useState({ totalToCollect: 0, totalCollected: 0, totalPending: 0, totalOthers: 0 });
 
-  const fetchPage = (page: number, employeeId: string | null, search: string, chargeFrequency: string[]) => {
+  const fetchPage = (
+    page: number,
+    employeeId: string | null,
+    search: string,
+    chargeFrequency: string[],
+    creditId?: string,
+    transactionId?: string
+  ) => {
     searchCreditsByEmployeeData({
       filtersItems: {
         creditorCompanyId,
         userId: employeeId ?? '',
         generalSearch: search,
         chargeFrequency: chargeFrequency.length > 0 ? chargeFrequency : undefined,
+        creditId,
+        transactionId,
       },
       pagination: {
         limit: ITEMS_PER_PAGE,
@@ -163,6 +186,10 @@ const useCreditsDashboardState = () => {
 
   const fetchTotals = async (employeeId: string | null, chargeFrequency: string[]) => {
     const { fromTimestamp, toTimestamp } = resolveChargeFrequencyDateRange(chargeFrequency, weeklyChargeDay);
+    console.log("fromTimestamp:", fromTimestamp);
+    console.log("toTimestamp:", toTimestamp);
+    console.log("chargeFrequency:", chargeFrequency);
+    console.log(" weeklyChargeDay:",  weeklyChargeDay);
     const totals = await getCreditTotals({
       fromTimestamp,
       toTimestamp,
@@ -172,11 +199,15 @@ const useCreditsDashboardState = () => {
       },
     });
     setCreditsTotals(totals);
+
   };
 
   useEffect(() => {
     if (!creditorCompanyId) return;
-    fetchPage(1, selectedEmployeeId, searchText, chargeFrequencyFilter);
+    // creditId/transactionId solo se mandan en esta carga inicial (deep link
+    // desde Transacciones) — cualquier otra interacción (paginar, buscar,
+    // filtrar por trabajador) vuelve a la lista normal, sin acotar por id.
+    fetchPage(1, selectedEmployeeId, searchText, chargeFrequencyFilter, navigationCreditId, navigationTransactionId);
     fetchTotals(selectedEmployeeId, chargeFrequencyFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [creditorCompanyId]);
@@ -212,14 +243,22 @@ const useCreditsDashboardState = () => {
   // (createPaymentsByEmployee) y lo marca "pending" de forma optimista aquí
   // mismo, para no esperar al próximo refetch — getPaymentByCredit (el que sí
   // trae los pagos reales) no se vuelve a pedir hasta que cambie la página.
-  const handlePagar = async (loan: LoanSummary, _index: number, amount: number): Promise<boolean> => {
+  const handlePagar = async (
+    loan: LoanSummary,
+    _index: number,
+    amount: number,
+    paymentCategory?: PaymentCategoryEnum
+  ): Promise<boolean> => {
     if (!loan.creditId) return false;
     const creditId = loan.creditId;
 
     const ok = await createPayment({
       creditId,
       customerId: loan.customerId ?? '',
+      // Para la descripción de la transacción ("PAGO - <nombre>")
+      customerName: loan.name,
       total: amount,
+      paymentCategory,
     });
 
     if (!ok) return false;
@@ -250,6 +289,11 @@ const useCreditsDashboardState = () => {
     return (loan.amountPaid ?? 0) >= umbral;
   };
 
+  // Se llegó por deep link desde Transacciones (creditId/transactionId) pero
+  // no se encontró nada — el caso típico es un crédito ya liquidado/renovado,
+  // que ya no pasa el filtro de status del catálogo (ver UserRoleCatalogs.tsx).
+  const deepLinkNotFound = Boolean((navigationCreditId || navigationTransactionId) && creditsData.total === 0);
+
   return {
     activeNav,
     handleNavChange,
@@ -257,6 +301,7 @@ const useCreditsDashboardState = () => {
     // Ya lo trae el backend (totalDocuments de searchCreditsByEmployee) — cuenta
     // los créditos que matchean el filtro/búsqueda actual, no todo el catálogo.
     totalCount: creditsData.total,
+    deepLinkNotFound,
     onPagar: handlePagar,
     esElegibleParaRenovar,
     employeeOptions,
@@ -277,10 +322,13 @@ const useCreditsDashboardState = () => {
       ? (CHARGE_FREQUENCY_LABELS[chargeFrequencyFilter[0]] ?? null)
       : null,
     onClearChargeFrequencyFilter: handleClearChargeFrequencyFilter,
+    // Montos crudos: CreditsSummaryCard formatea internamente (los necesita
+    // sin formatear para calcular el % de avance de la barra de progreso).
     creditsSummary: {
-      totalPorCobrar: formatAmount(creditsTotals.totalToCollect),
-      totalCobrado: formatAmount(creditsTotals.totalCollected),
-      pendientePorCobrar: formatAmount(creditsTotals.totalPending),
+      totalPorCobrar: creditsTotals.totalToCollect,
+      totalCobrado: creditsTotals.totalCollected,
+      pendientePorCobrar: creditsTotals.totalPending,
+      totalOtros: creditsTotals.totalOthers,
     },
   };
 };

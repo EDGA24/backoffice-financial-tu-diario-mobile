@@ -3,7 +3,6 @@ import { Box, Button, Typography } from '@mui/material';
 import type { FieldErrors } from 'react-hook-form';
 import { PersonIcon, LockIcon, ShieldIcon } from '@/components/atoms/Icons/AuthIcons';
 
-
 import AuthScreenLayout from '@/components/atoms/AuthScreenLayout/AuthScreenLayout';
 import InputFormatField from '@/components/atoms/FormInputFileds/InputFormatField/InputFormatField';
 import { LoginFormFieldsEnum } from '@/shared/constants/LoginFormFieldsEnum';

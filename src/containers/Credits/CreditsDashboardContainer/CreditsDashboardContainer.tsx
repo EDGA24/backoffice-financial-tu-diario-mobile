@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Chip } from '@mui/material';
+import { Box, Chip, Alert } from '@mui/material';
 import DashboardContactTable from '@/components/molecules/mobile/DashboardContacTable/DashboardContacTable';
 import CreditsSummaryCard from '@/components/molecules/mobile/CreditsSummaryCard/CreditsSummaryCard';
 import ColorLegend from '@/components/molecules/mobile/ColorLegend/ColorLegend';
@@ -37,6 +37,7 @@ const CreditsDashboardContainer = () => {
         chargeFrequencyFilterLabel,
         onClearChargeFrequencyFilter,
         creditsSummary,
+        deepLinkNotFound,
     } = useCreditsDashboardState();
 
     return (
@@ -44,6 +45,14 @@ const CreditsDashboardContainer = () => {
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', px: 2.5, pt: 2 }}>
                 <ColorLegend items={LEGEND_ITEMS} />
             </Box>
+
+            {deepLinkNotFound && (
+                <Box sx={{ px: 2.5, pt: 2 }}>
+                    <Alert severity="info">
+                        Ese crédito ya fue liquidado/renovado y ya no está disponible en la lista.
+                    </Alert>
+                </Box>
+            )}
 
             {chargeFrequencyFilterLabel && (
                 <Box sx={{ px: 2.5, pt: 2 }}>
@@ -60,6 +69,7 @@ const CreditsDashboardContainer = () => {
                 totalPorCobrar={creditsSummary.totalPorCobrar}
                 totalCobrado={creditsSummary.totalCobrado}
                 pendientePorCobrar={creditsSummary.pendientePorCobrar}
+                totalOtros={creditsSummary.totalOtros}
             />
 
             {/* --- Últimos préstamos --- */}

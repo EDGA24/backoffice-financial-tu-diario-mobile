@@ -3,6 +3,7 @@ import { Box, Typography } from '@mui/material';
 import type { Control, FieldErrors, FieldValues } from 'react-hook-form';
 
 import InputFormatField from '@/components/atoms/FormInputFileds/InputFormatField/InputFormatField';
+import LocationPickerField from '@/components/molecules/mobile/LocationPickerField/LocationPickerField';
 import { CustomerFormContactEnum, CustomerFormFieldsEnum } from '@/shared/constants/CustomerFormFieldsEnum';
 import type { Customers } from '@/types/Customers';
 
@@ -74,6 +75,13 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
         rules={{ required: 'La ubicación 3WORDS es obligatoria' }}
         label="Ubicación 3WORDS"
         placeholder="Adjunta aquí la ubicación de 3WORDS"
+      />
+
+      <LocationPickerField
+        control={control}
+        latitudeName={CustomerFormContactEnum.UBICATION_LATITUDE}
+        longitudeName={CustomerFormContactEnum.UBICATION_LONGITUDE}
+        label="Ubicación GPS"
       />
     </Box>
   );

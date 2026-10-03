@@ -9,6 +9,9 @@ export interface Credits {
     creditAmountWithMoratory?: number;
     creditorCompanyId:         string;
     customerId:                string;
+    // Solo del request: el backend lo usa para la descripción de la
+    // transacción ("CREDIT - <nombre>"), no se guarda en el crédito.
+    customerName?:             string;
     expirationDate?:           number;
     fixedCharge?:              number;
     /**
@@ -29,6 +32,9 @@ export interface ChargeRules {
     chargeDay?:        string;
     comissionRate?:    number;
     renovationPeriod?: number;
+    // Viene de la regla de la empresa: si es true, se registra el primer
+    // pago en cuanto se crea el crédito (nuevo o renovación).
+    firstCharge?:      boolean;
 }
 
 export enum CreationStatus {

@@ -122,3 +122,31 @@
     @apply bg-background text-foreground;
     }
 }
+
+/* Intro del Login (ver LoginIntro.tsx) — solo transform/opacity/filter, para
+   que corran a 60fps. Cada regla se activa por clase, nunca globalmente, y
+   solo se usan cuando shouldPlayLoginIntro() dice que hay que reproducirlas. */
+@keyframes login-intro-logo-in {
+  from { opacity: 0; transform: scale(0.88); filter: blur(8px); }
+  to { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+@keyframes login-intro-dots-in {
+  from { opacity: 0; transform: scale(1.15); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes login-intro-sheet-rise {
+  from { transform: translateY(102%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes login-intro-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes login-intro-crossfade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

@@ -1,5 +1,9 @@
 import { ChargeFrequencyEnum } from '@/shared/constants/ChargeFrequencyEnum';
 import { ChargeDayEnum } from '@/shared/constants/ChargeDayEnum';
+import { endOfDayLocal, startOfDayLocal } from '@/shared/utils/dateRangeTimezone';
+
+export const MX_UTC_OFFSET_MS = 6 * 60 * 60 * 1000;
+export const toIso = (d: Date) => new Date(d.getTime() - MX_UTC_OFFSET_MS).toISOString().slice(0, 10);
 
 const DAY_NAME_TO_INDEX: Record<string, number> = {
     [ChargeDayEnum.SUNDAY]: 0,
@@ -35,8 +39,8 @@ export const ChargeFrequencyDateRangeCatalog: Record<string, (chargeDay?: string
     [ChargeFrequencyEnum.WEEKLY]: (chargeDay = ChargeDayEnum.MONDAY) => {
         const dayIndex = DAY_NAME_TO_INDEX[chargeDay] ?? 1; // 1 = lunes, por si el valor no coincide con ningún día conocido
         return {
-            fromTimestamp: getLastOccurrenceOfDay(dayIndex).getTime(),
-            toTimestamp: Date.now(),
+            fromTimestamp: startOfDayLocal(toIso(getLastOccurrenceOfDay(dayIndex))),
+            toTimestamp: endOfDayLocal(toIso(new Date()))
         };
     },
 };

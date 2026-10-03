@@ -6,6 +6,7 @@ import { LoginRequest } from '@/types/LoginRequest';
 import { LoginResponse, LoginResponseUser } from '@/types/LoginResponse';
 import { SearchEmployeesRequest } from '@/types/SearchEmployeesRequest';
 import { EmployeeUser } from '@/types/EmployeeUser';
+import { ChangePasswordRequest } from '@/types/ChangePasswordRequest';
 import { useWalletLedgerStore } from './walletLedger.store';
 import { isJwtExpired } from '@/shared/utils/jwtUtils';
 
@@ -18,7 +19,8 @@ interface AuthStoreState {
     isAuthenticated: boolean,
     login: (request: LoginRequest) => Promise<void>,
     logout: () => void,
-    searchEmployees: (request: SearchEmployeesRequest) => Promise<{ total: number, records: EmployeeUser[] }>
+    searchEmployees: (request: SearchEmployeesRequest) => Promise<{ total: number, records: EmployeeUser[] }>,
+    changePassword: (request: ChangePasswordRequest) => Promise<void>
 }
 
 export const useAuthStore = create<AuthStoreState>()(
@@ -51,6 +53,11 @@ export const useAuthStore = create<AuthStoreState>()(
                     total: get(response.data, "data.total", 0),
                     records: get(response.data, "data.records", [])
                 };
+            },
+            // El userId sale del JWT en el backend (nunca se manda aquí) —
+            // el interceptor de axiosUtils ya adjunta el token desde localStorage.
+            changePassword: async (request: ChangePasswordRequest) => {
+                await axios.post(`${BASE_URL}/changePassword`, request);
             }
         }),
         {

@@ -13,6 +13,7 @@ export interface LoginResponseChargeRules {
     chargeDay?:        string;
     renovationPeriod?: number;
     comissionRate?:    number;
+    firstCharge?:      boolean;
 }
 
 export interface LoginResponseUser {

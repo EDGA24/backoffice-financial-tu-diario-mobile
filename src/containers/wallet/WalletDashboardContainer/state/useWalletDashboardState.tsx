@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { get } from 'lodash';
 import { type NavKey } from '@/components/organisms/mobile/BottomNavigation/BottomNavigation';
@@ -21,6 +22,7 @@ import type { TransactionsFilterValue } from '@/components/molecules/mobile/Filt
 import { UserRoleEnum } from '@/shared/constants/UserRoleEnum';
 import { useEmployeeOptions } from '@/hooks/useEmployeeOptions';
 import type { TransactionOverlayStatus } from '@/components/molecules/mobile/TransactionStatusOverlay/TransactionStatusOverlay';
+import { startOfDayLocal, endOfDayLocal } from '@/shared/utils/dateRangeTimezone';
 
 // Cuánto se queda visible el aviso de "éxito" antes de cerrar el sheet solo.
 const SUCCESS_OVERLAY_DURATION_MS = 1600;
@@ -118,6 +120,7 @@ const mapTransactionToSummary = (t: TransactionTable, index: number, myWalletId:
     kind: config.kind,
     isPending: t.status === 'pending',
     date: getIsoDate(t),
+    raw: t,
   };
 };
 
@@ -127,6 +130,7 @@ const DEFAULT_FILTER: TransactionsFilterValue = {
 };
 
 const useWalletDashboardState = () => {
+  const navigate = useNavigate();
   const { transactionsData, searchTransactionsByUserData, createTransactionByEmployee } = useTransactionStore();
   const { getWalletInfo } = useCreditStore();
   const employeeOptions = useEmployeeOptions();
@@ -135,6 +139,9 @@ const useWalletDashboardState = () => {
   const accountNumber = useAuthStore((state) => state.user?.accountNumber ?? '');
   const userName = useAuthStore((state) => state.user?.userName ?? '');
   const roles = useAuthStore((state) => state.user?.roles ?? []);
+  // Mismo criterio que CreditSuccessTicket: el ticket de detalle comparte al
+  // WhatsApp de la empresa, no al del cliente.
+  const companyWhatsAppPhone = useAuthStore((state) => state.user?.creditorCompanyInfo?.phoneNumber ?? '');
   // Comparación case-insensitive: el backend guarda el nombre del rol tal
   // cual lo capturaron (p.ej. "ADMIN"), no necesariamente en minúsculas.
   // Solo admin ve los botones de mover dinero; manager y employee no (pero
@@ -164,6 +171,9 @@ const useWalletDashboardState = () => {
   const [submittingTransaction, setSubmittingTransaction] = useState(false);
   const [transactionError, setTransactionError] = useState<string | null>(null);
   const [transactionOverlayStatus, setTransactionOverlayStatus] = useState<TransactionOverlayStatus>(null);
+  // Movimiento tocado en la lista — abre el ticket de detalle (mismo lenguaje
+  // visual que CreditSuccessTicket) con la info completa de ese movimiento.
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionTable | null>(null);
 
   const TRANSACTION_FORM_DEFAULTS: Transactions = {
     creditorCompanyId,
@@ -205,11 +215,12 @@ const useWalletDashboardState = () => {
           walletId,
           accountNumber,
         },
-        //ahora manemajos ya como number 
+        // startOfDayLocal/endOfDayLocal: ver dateRangeTimezone.ts — evita
+        // interpretar la fecha como medianoche UTC en vez de México (UTC-6).
         createdRangeDate: currentFilter.dateRange.range
           ? {
-              startDate: new Date(currentFilter.dateRange.range.startDate).getTime(),
-              endDate: new Date(`${currentFilter.dateRange.range.endDate}T23:59:59.999Z`).getTime(),
+              startDate: startOfDayLocal(currentFilter.dateRange.range.startDate),
+              endDate: endOfDayLocal(currentFilter.dateRange.range.endDate),
             }
           : undefined,
         transactionType: currentFilter.movimientos.length > 0 ? currentFilter.movimientos : undefined,
@@ -252,6 +263,20 @@ const useWalletDashboardState = () => {
     fetchPage(nextPage, true, filter, searchTerm);
   };
 
+  const handleTransactionClick = (summary: TransactionSummary) => {
+    setSelectedTransaction(summary.raw);
+  };
+
+  const handleCloseTransactionDetail = () => {
+    setSelectedTransaction(null);
+  };
+
+  // Navega a Créditos filtrado por el crédito relacionado a este movimiento
+  // (payment -> creditId, credit -> transactionId; ver TransactionDetailTicket).
+  const handleViewCredit = (params: { creditId?: string; transactionId?: string }) => {
+    setSelectedTransaction(null);
+    navigate('/credits-dashboard', { state: params });
+  };
   const handleApplyFilter = (value: TransactionsFilterValue) => {
     setFilter(value);
     setCurrentPage(0);
@@ -443,6 +468,11 @@ const useWalletDashboardState = () => {
     hasMoreTransactions,
     loadingMoreTransactions: loadingMore,
     handleLoadMoreTransactions: handleLoadMore,
+    selectedTransaction,
+    handleTransactionClick,
+    handleCloseTransactionDetail,
+    handleViewCredit,
+    companyWhatsAppPhone,
     filter,
     handleApplyFilter,
     searchTerm,

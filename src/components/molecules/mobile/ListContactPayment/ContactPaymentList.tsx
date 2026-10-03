@@ -21,16 +21,19 @@ import PaidRoundedIcon from '@mui/icons-material/PaidRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
+import RoomRoundedIcon from '@mui/icons-material/RoomRounded';
 import Avatar from '@/components/atoms/Avatar/Avatar';
 import StatusChip from '@/components/atoms/StatusChip/StatusChip';
 import LoanExpandedDetails from './LoanExpandedDetails';
 import PaymentHistoryModal from './PaymentHistoryModal';
+import LocationViewModal from './LocationViewModal';
 import PaymentAmountModal from './PaymentAmountModal';
 import RenewalFlowModal from './RenewalFlowModal';
 import TransactionStatusOverlay, {
   type TransactionOverlayStatus,
 } from '../TransactionStatusOverlay/TransactionStatusOverlay';
 import type { LoanSummary, PaymentRecord } from '../DashboardContacTable/DashboardContacTable';
+import { PaymentCategoryEnum } from '@/shared/constants/PaymentCategoryEnum';
 import ArrowDropDownRoundedIcon from '@mui/icons-material/ArrowDropDownRounded';
 import AutorenewRoundedIcon from '@mui/icons-material/AutorenewRounded';
 import { useNavigate } from 'react-router-dom';
@@ -77,7 +80,7 @@ const mapPaymentToRecord = (payment: PaymentTable, index: number): PaymentRecord
 
 export interface ContactPaymentListProps {
   loans: LoanSummary[];
-  onPagar?: (loan: LoanSummary, index: number, amount: number) => Promise<boolean> | boolean;
+  onPagar?: (loan: LoanSummary, index: number, amount: number, paymentCategory?: PaymentCategoryEnum) => Promise<boolean> | boolean;
   esPagado?: (loan: LoanSummary) => boolean;
   esElegibleParaRenovar?: (loan: LoanSummary) => boolean;
   emptyMessage?: string;
@@ -94,6 +97,7 @@ export default function ContactPaymentList({
   const [pagandoIndex, setPagandoIndex] = useState<number | null>(null);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [loanEnModal, setLoanEnModal] = useState<LoanSummary | null>(null);
+  const [loanEnUbicacionModal, setLoanEnUbicacionModal] = useState<LoanSummary | null>(null);
   const [loanEnPagoModal, setLoanEnPagoModal] = useState<{ loan: LoanSummary; index: number; mode: 'pago' | 'liquidar' } | null>(null);
   const [pagoError, setPagoError] = useState<string | null>(null);
   const [pagoOverlayStatus, setPagoOverlayStatus] = useState<TransactionOverlayStatus>(null);
@@ -148,11 +152,15 @@ export default function ContactPaymentList({
 
   const handleConfirmarPago = async (amount: number) => {
     if (!loanEnPagoModal || pagandoIndex !== null || !onPagar) return;
-    const { loan, index } = loanEnPagoModal;
+    const { loan, index, mode } = loanEnPagoModal;
     setPagoError(null);
     try {
       setPagandoIndex(index);
-      const ok = await onPagar(loan, index, amount);
+      // "Liquidar" paga lo que falta del crédito completo, no una cuota del
+      // periodo — no debe contar como "Cobrado" en getCreditTotals (ver
+      // PaymentCategoryEnum en el backend).
+      const paymentCategory = mode === 'liquidar' ? PaymentCategoryEnum.LIQUIDATION : PaymentCategoryEnum.CHARGE_PERIOD;
+      const ok = await onPagar(loan, index, amount, paymentCategory);
       if (!ok) {
         // Se queda el modal abierto con el monto capturado, para reintentar
         // sin tener que volver a escribirlo.
@@ -213,6 +221,11 @@ export default function ContactPaymentList({
     } finally {
       setLoadingExpandIndex(null);
     }
+  };
+
+  const handleVerUbicacion = (e: React.MouseEvent, loan: LoanSummary) => {
+    e.stopPropagation();
+    setLoanEnUbicacionModal(loan);
   };
 
   const handleVerHistorial = async (e: React.MouseEvent, loan: LoanSummary, index: number) => {
@@ -317,6 +330,16 @@ export default function ContactPaymentList({
                       {loan.phone} · {loan.date}
                     </Typography>
                   </Box>
+                  {loan.ubication?.latitude && loan.ubication?.longitude && (
+                    <IconButton
+                      size="small"
+                      onClick={(e) => handleVerUbicacion(e, loan)}
+                      sx={{ flexShrink: 0, mt: -0.25 }}
+                      aria-label="Ver ubicación"
+                    >
+                      <RoomRoundedIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                    </IconButton>
+                  )}
                   <IconButton
                     size="small"
                     onClick={(e) => handleVerHistorial(e, loan, i)}
@@ -461,6 +484,12 @@ export default function ContactPaymentList({
         open={loanEnModal !== null}
         onClose={() => setLoanEnModal(null)}
         loan={loanEnModal}
+      />
+
+      <LocationViewModal
+        open={loanEnUbicacionModal !== null}
+        onClose={() => setLoanEnUbicacionModal(null)}
+        loan={loanEnUbicacionModal}
       />
 
       <PaymentAmountModal

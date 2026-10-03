@@ -72,6 +72,7 @@ export const CreditForm: React.FC<CreditFormProps> = ({ control, errors, setValu
           chargeDay: rule.chargeDay,
           renovationPeriod: rule.renovationPeriod,
           comissionRate: rule.comissionRate,
+          firstCharge: rule.firstCharge ?? false,
         };
       }),
     [ChargeRules]
@@ -86,6 +87,7 @@ export const CreditForm: React.FC<CreditFormProps> = ({ control, errors, setValu
     setValue('chargeRules.chargeDay', option.chargeDay);
     setValue('chargeRules.renovationPeriod', option.renovationPeriod);
     setValue('chargeRules.comissionRate', option.comissionRate);
+    setValue('chargeRules.firstCharge', option.firstCharge ?? false);
   };
 
   // Preselecciona la regla al abrir el form en renovación — una sola vez, para

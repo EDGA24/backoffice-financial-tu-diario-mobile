@@ -5,6 +5,7 @@ import TransactionListItem, {
     type TransactionKind,
 } from '@/components/molecules/mobile/TransactionListItem/TransactionListItem';
 import type { SvgIconComponent } from '@mui/icons-material';
+import type { TransactionTable } from '@/types/TransactionTable';
 
 export interface TransactionSummary {
     id: string;
@@ -16,6 +17,9 @@ export interface TransactionSummary {
     isPending?: boolean;
     // ISO date string, usada solo para agrupar por día (no se muestra tal cual)
     date?: string;
+    // Registro crudo del backend — se usa para abrir el ticket de detalle al
+    // tocar la fila, sin tener que volver a pedirlo.
+    raw: TransactionTable;
 }
 
 export interface TransactionSectionProps {
@@ -27,6 +31,7 @@ export interface TransactionSectionProps {
     loadingMore?: boolean;
     onLoadMore?: () => void;
     emptyMessage?: string;
+    onTransactionClick?: (transaction: TransactionSummary) => void;
 }
 
 const SIN_FECHA_KEY = 'sin-fecha';
@@ -37,6 +42,30 @@ interface DayGroup {
     items: TransactionSummary[];
 }
 
+// Zona horaria fija del negocio (México, UTC-6 todo el año) — mismo criterio
+// que dateRangeTimezone.ts.
+const MX_UTC_OFFSET_MS = 6 * 60 * 60 * 1000;
+
+// t.date es el createdAt completo del backend, en UTC (ej. "2026-09-24T02:48:00.000Z").
+// Tomar los primeros 10 caracteres tal cual da el día calendario en UTC, no en
+// México — un movimiento hecho a las 8:48pm en México ya cruzó a las 2:48am
+// UTC del día SIGUIENTE, y se agrupaba un día adelantado (24 en vez de 23).
+// Hay que restarle el offset de México antes de leer el día.
+const toMexicoDateKey = (isoDateTime: string): string =>
+    new Date(new Date(isoDateTime).getTime() - MX_UTC_OFFSET_MS).toISOString().slice(0, 10);
+
+// new Date("YYYY-MM-DD") se interpreta como medianoche UTC, y .toLocaleDateString
+// la formatea en la zona horaria LOCAL del dispositivo — si el dispositivo está
+// en México (UTC-6), esa medianoche UTC cae en las 6pm del día ANTERIOR en
+// hora local, y el encabezado mostraba un día menos del real. Construyendo la
+// fecha con el constructor (year, month, day) se evita ese viaje redondo por UTC.
+const formatGroupLabel = (isoDate: string): string => {
+    const [year, month, day] = isoDate.split('-').map(Number);
+    return new Date(year, month - 1, day)
+        .toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
+        .toUpperCase();
+};
+
 // Agrupa manteniendo el orden en que llegan los items (se asume que el backend
 // ya los regresa ordenados, más recientes primero).
 const groupByDay = (transactions: TransactionSummary[]): DayGroup[] => {
@@ -44,7 +73,7 @@ const groupByDay = (transactions: TransactionSummary[]): DayGroup[] => {
     const map = new Map<string, TransactionSummary[]>();
 
     transactions.forEach((t) => {
-        const key = t.date ? t.date.slice(0, 10) : SIN_FECHA_KEY; // YYYY-MM-DD
+        const key = t.date ? toMexicoDateKey(t.date) : SIN_FECHA_KEY; // YYYY-MM-DD (México)
         if (!map.has(key)) {
             map.set(key, []);
             order.push(key);
@@ -53,12 +82,7 @@ const groupByDay = (transactions: TransactionSummary[]): DayGroup[] => {
     });
 
     return order.map((key) => {
-        const label =
-            key === SIN_FECHA_KEY
-                ? 'Sin fecha'
-                : new Date(key)
-                      .toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
-                      .toUpperCase();
+        const label = key === SIN_FECHA_KEY ? 'Sin fecha' : formatGroupLabel(key);
         return { key, label, items: map.get(key)! };
     });
 };
@@ -72,6 +96,7 @@ const TransactionSection: React.FC<TransactionSectionProps> = ({
     loadingMore = false,
     onLoadMore,
     emptyMessage = 'No se encontraron movimientos',
+    onTransactionClick,
 }) => {
     const groups = groupByDay(transactions);
 
@@ -132,7 +157,7 @@ const TransactionSection: React.FC<TransactionSectionProps> = ({
                         </Typography>
 
                         {group.items.map((t) => (
-                            <TransactionListItem key={t.id} {...t} />
+                            <TransactionListItem key={t.id} {...t} onClick={() => onTransactionClick?.(t)} />
                         ))}
                     </Box>
                 ))}

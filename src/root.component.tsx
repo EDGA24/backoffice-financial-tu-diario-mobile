@@ -9,6 +9,7 @@ import Main from './layout/main/main.tsx';
 import CreditsDashboardContainer from './containers/Credits/CreditsDashboardContainer/CreditsDashboardContainer.tsx';
 import CreditsCustomerContainer from './containers/CreditsCustomer/CreditsCustomerContainer/CreditsCustomerContainer.tsx';
 import LoginDashboardContainer from './containers/Login/Authentication/LoginDashboarContiainer.tsx';
+import ChangePasswordContainer from './containers/Account/ChangePasswordContainer/ChangePasswordContainer.tsx';
 import ProtectedRoute from './components/atoms/ProtectedRoute/ProtectedRoute.tsx';
 
 
@@ -29,6 +30,7 @@ export const appRouter = createHashRouter([
           { path: 'wallet-dashboard', Component: WalletDashboardContainer },
           { path: 'credits-dashboard', Component: CreditsDashboardContainer },
           { path: 'customer-create', Component: CreditsCustomerContainer },
+          { path: 'change-password', Component: ChangePasswordContainer },
         ]
       }
     ]

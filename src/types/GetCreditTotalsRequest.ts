@@ -11,4 +11,5 @@ export interface GetCreditTotalsResponse {
     totalToCollect: number;
     totalCollected: number;
     totalPending: number;
+    totalOthers: number;
 }

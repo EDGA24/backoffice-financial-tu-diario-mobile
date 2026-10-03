@@ -52,7 +52,17 @@ export const useAuthenticationState = (): IUseAuthenticationState => {
       });
       navigate(NAV_ROUTES.home);
     } catch (err: any) {
-      setError(err?.response?.data?.error ?? 'Credenciales inválidas');
+      if (!err?.response) {
+        // Sin "response" significa que la petición nunca llegó a resolverse
+        // contra el servidor (timeout, conexión rechazada, servidor dormido
+        // en Render) — no es que las credenciales estén mal, es que no hubo
+        // ni siquiera respuesta que evaluar. Mostrar "credenciales inválidas"
+        // aquí confunde al usuario, que reintenta pensando que escribió mal
+        // su contraseña.
+        setError('No se pudo conectar con el servidor. Puede estar iniciando (tarda unos segundos), intenta de nuevo.');
+      } else {
+        setError(err?.response?.data?.error ?? 'Credenciales inválidas');
+      }
     } finally {
       clearTimeout(slowHintTimer);
       setLoading(false);
