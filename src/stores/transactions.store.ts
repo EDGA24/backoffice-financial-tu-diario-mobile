@@ -9,8 +9,8 @@ import { SearchTransactionsByUserRequest } from '@/types/SearchTransactionsByUse
 import { TransactionTable } from '@/types/TransactionTable';
 import { Transactions } from '@/types/Transactions';
 
-// const BASE_URL = "https://credit-saas-gateway.onrender.com/transactions";
-const BASE_URL = "http://localhost:4003/transactions";
+const BASE_URL = "https://credit-saas-gateway.onrender.com/transactions";
+// const BASE_URL = "http://localhost:4003/transactions";
 
 // Mapea la transacción cruda del backend (con creditInfo[0] del join) a
 // TransactionTable.creditBasicInfo — trae el _id real del crédito para poder
