@@ -14,6 +14,7 @@ import { PaymentTable } from '@/types/PaymentTable';
 import { GetWalletRequest } from '@/types/GetWalletRequest';
 import { WalletTable } from '@/types/WalletTable';
 import { GetCreditTotalsRequest, GetCreditTotalsResponse } from '@/types/GetCreditTotalsRequest';
+import { GetCreditSummaryRequest, GetCreditSummaryResponse } from '@/types/GetCreditSummaryRequest';
 import { useWalletLedgerStore } from './walletLedger.store';
 import { useAuthStore } from './auth.store';
 import { PaymentCategoryEnum } from '@/shared/constants/PaymentCategoryEnum';
@@ -44,7 +45,8 @@ interface CreditStoreState {
     createPayment: (request: { creditId: string, customerId: string, customerName?: string, total: number, paymentCategory?: PaymentCategoryEnum }) => Promise<boolean>,
     getPaymentByCredit: (request: GetPaymentRequest) => Promise<{ total: number, records: PaymentTable[] }>,
     getWalletInfo: (request: GetWalletRequest) => Promise<{ total: number, records: WalletTable[] }>,
-    getCreditTotals: (request: GetCreditTotalsRequest) => Promise<GetCreditTotalsResponse>
+    getCreditTotals: (request: GetCreditTotalsRequest) => Promise<GetCreditTotalsResponse>,
+    getCreditSummary: (request: GetCreditSummaryRequest) => Promise<GetCreditSummaryResponse[]>
 }
 
 export const useCreditStore = create<CreditStoreState>()(
@@ -129,6 +131,10 @@ export const useCreditStore = create<CreditStoreState>()(
                     totalPending: get(response.data, "data[0].totalPending", 0),
                     totalOthers: get(response.data, "data[0].totalOthers", 0)
                 };
+            },
+            getCreditSummary: async (request: GetCreditSummaryRequest) => {
+                const response = await axios.post<{ data: GetCreditSummaryResponse[] }>(`${BASE_URL}/getCreditSummary`, request);
+                return get(response.data, "data", []);
             }
         }),
         {

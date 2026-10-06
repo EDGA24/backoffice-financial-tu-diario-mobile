@@ -115,6 +115,7 @@ const mapCreditToLoanSummary = (
     chargePeriods: credit.chargeRules?.chargePeriods,
     renovationPeriod: credit.chargeRules?.renovationPeriod,
     chargeFrequency: credit.chargeRules?.chargeFrequency,
+    chargeRules: credit.chargeRules,
     startDateChargeConfig: credit.startDateChargeConfig
       ? new Date(credit.startDateChargeConfig).toISOString()
       : undefined,

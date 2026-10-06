@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import type { IFormProps } from '@/shared/interfaces/IFormProps';
 import type { Aval, Contact, Customers } from '@/types/Customers';
 import type { AvalFieldProps } from '@/components/molecules/mobile/AvalField/AvalField';
-import { CreationStatus, type Credits } from '@/types/Credits';
+import { CreationStatus, type ChargeRules, type Credits } from '@/types/Credits';
 import type { LoanSummary } from '@/components/molecules/mobile/DashboardContacTable/DashboardContacTable';
 import { get } from 'lodash';
 import { useCreditStore, type CustomerSearchResult } from '@/stores/credits.store';
@@ -147,7 +147,7 @@ export interface IUseCreditsCustomerContainerState {
 
     credit: IFormProps<Credits> & {
         setValue: any;
-        initialChargeFrequency?: string;
+        initialChargeRules?: ChargeRules;
     };
 }
 
@@ -511,9 +511,9 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
     // formulario de cliente. Lo usan el ticket, el mensaje de WhatsApp y la
     // descripción de las transacciones (customerName del crédito y del primer pago).
     const resolveCustomerName = (): string =>
-        isExistingCustomer
-            ? `${selectedCustomerSummary?.name ?? ''} ${selectedCustomerSummary?.lastName ?? ''}`.trim()
-            : `${get(customerFormState, 'contact.name', '')} ${get(customerFormState, 'contact.lastName', '')}`.trim();
+        cleanText(isExistingCustomer
+            ? `${selectedCustomerSummary?.name ?? ''} ${selectedCustomerSummary?.lastName ?? ''}`
+            : `${get(customerFormState, 'contact.name', '')} ${get(customerFormState, 'contact.lastName', '')}`);
 
     // Datos del ticket de éxito (y del mensaje de WhatsApp) — todo sale del
     // formulario, no de la respuesta del backend.
@@ -764,7 +764,7 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
             control: controlCredit,
             errors: errorsCredit,
             setValue: setValueCredit,
-            initialChargeFrequency: renewalLoan?.chargeFrequency,
+            initialChargeRules: renewalLoan?.chargeRules,
         },
     };
 };

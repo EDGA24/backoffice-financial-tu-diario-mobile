@@ -1,4 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { get } from 'lodash';
+import { useCreditStore } from '@/stores/credits.store';
+import { useAuthStore } from '@/stores/auth.store';
+import { ChargeFrequencyDateRangeCatalog } from '@/shared/constants/catalogs/charge_frequency_date_range_catalog';
+import type { GetCreditSummaryResponse } from '@/types/GetCreditSummaryRequest';
+import type { ResumeTodayStats } from '@/components/molecules/mobile/ResumeToday/ResumeToday';
 import { useNavigate } from 'react-router-dom';
 import { type NavKey } from '@/components/organisms/mobile/BottomNavigation/BottomNavigation';
 import { type LoanStatus } from '@/components/atoms/StatusChip/StatusChip';
@@ -38,10 +44,39 @@ const useHomeDashboardState = () => {
   ];
 
 
-  const stats = {
-    creditosDiariosActivos: 1,
-    creditosSemanalesActivos: 1,
-    clientesTotal: 1,
+  // Resumen de la semana (getCreditSummary): solo conteos por frecuencia.
+  const { getCreditSummary } = useCreditStore();
+  const creditorCompanyId = useAuthStore((state) => state.user?.creditorCompanyId ?? '');
+  // Día de corte semanal configurado por la empresa (mismo criterio que Créditos)
+  const weeklyChargeDay = useAuthStore((state) =>
+    state.user?.creditorCompanyInfo?.chargeRules?.find((rule) => rule.chargeFrequency === ChargeFrequencyEnum.WEEKLY)?.chargeDay
+  );
+  const [summary, setSummary] = useState<GetCreditSummaryResponse[]>([]);
+
+  useEffect(() => {
+    if (!creditorCompanyId) return;
+    const { fromTimestamp, toTimestamp } = ChargeFrequencyDateRangeCatalog[ChargeFrequencyEnum.WEEKLY](weeklyChargeDay);
+    getCreditSummary({ fromTimestamp, toTimestamp })
+      .then(setSummary)
+      .catch((error) => {
+        console.error('Error al obtener el resumen:', error);
+        setSummary([]);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [creditorCompanyId]);
+
+  // Si una frecuencia no viene en la respuesta (sin créditos de ese tipo), va en 0
+  const daily = summary.find((row) => row.chargeFrequency === ChargeFrequencyEnum.DAILY);
+  const weekly = summary.find((row) => row.chargeFrequency === ChargeFrequencyEnum.WEEKLY);
+  const byFrequency = (key: 'collected' | 'new' | 'renewed') => ({
+    daily: get(daily, key, 0),
+    weekly: get(weekly, key, 0),
+  });
+
+  const stats: ResumeTodayStats = {
+    collected: byFrequency('collected'),
+    new: byFrequency('new'),
+    renewed: byFrequency('renewed'),
   };
 
   const handleNavChange = (key: NavKey) => setActiveNav(key);

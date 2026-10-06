@@ -32,6 +32,7 @@ export interface ChargeRules {
     chargeDay?:       string;
     comissionRate:    number;
     renovationPeriod: number;
+    firstCharge?:     boolean;
 }
 
 export interface CustomerBasicInfo {

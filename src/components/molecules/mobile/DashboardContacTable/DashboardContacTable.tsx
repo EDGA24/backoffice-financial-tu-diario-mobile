@@ -9,6 +9,7 @@ import { useLoanSearch } from '@/hooks/useLoanSearch';
 import { useEmployeeFilter } from '@/hooks/useEmployeeFilter';
 import type { EmployeeOption } from '@/shared/constants/catalogs/employees.catalog';
 import type { PaymentCategoryEnum } from '@/shared/constants/PaymentCategoryEnum';
+import type { ChargeRules } from '@/types/Credits';
 
 export interface PaymentRecord {
   id: string;
@@ -48,6 +49,9 @@ export interface LoanSummary {
   // junto con fixedCharge para el umbral de "elegible para renovar".
   renovationPeriod?: number;
   chargeFrequency?: string;
+  // Regla de cobro completa con la que se creó el crédito — al renovarlo se
+  // usa para preseleccionar exactamente esa regla (ver buildChargeRuleId).
+  chargeRules?: ChargeRules;
   startDateChargeConfig?: string;
   // 'pending' pinta la tarjeta de amarillo: la transacción de desembolso del
   // crédito o el último pago real siguen sin aprobar (credit.transactionStatus /

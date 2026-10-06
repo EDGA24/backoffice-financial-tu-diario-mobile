@@ -7,7 +7,8 @@ import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
 
 import InputFormatField from '@/components/atoms/FormInputFileds/InputFormatField/InputFormatField';
 import { CreditFormFieldsEnum } from '@/shared/constants/CreditFormFieldsEnum';
-import type { Credits } from '@/types/Credits';
+import type { ChargeRules, Credits } from '@/types/Credits';
+import { buildChargeRuleId } from '@/shared/utils/chargeRuleUtils';
 import ChargeRulesAutocompleteField, {
   type ChargeRuleOption,
 } from '../../ChargeRulesAutocompleteField/ChargeRulesAutocompleteField';
@@ -27,13 +28,13 @@ export interface CreditFormProps {
   control: Control<FieldValues | any, object>;
   errors: FieldErrors<Credits>;
   setValue: any;
-  // Renovación: ya se sabe si el crédito que se renueva es diario o semanal
-  // (viene del crédito original), así que no tiene sentido pedirle al
+  // Renovación: la regla de cobro completa del crédito que se renueva — se
+  // preselecciona esa misma regla, así que no tiene sentido pedirle al
   // cobrador que la vuelva a elegir a mano.
-  initialChargeFrequency?: string;
+  initialChargeRules?: ChargeRules;
 }
 
-export const CreditForm: React.FC<CreditFormProps> = ({ control, errors, setValue, initialChargeFrequency }) => {
+export const CreditForm: React.FC<CreditFormProps> = ({ control, errors, setValue, initialChargeRules }) => {
   const ChargeRules = useAuthStore((state) => state.user?.creditorCompanyInfo?.chargeRules ?? []);
   const roles = useAuthStore((state) => state.user?.roles ?? []);
   // Solo admin puede editar a mano periodos/renovación/comisión — el cobrador
@@ -42,7 +43,7 @@ export const CreditForm: React.FC<CreditFormProps> = ({ control, errors, setValu
   // Renovación: la regla ya viene fija del crédito original — nadie, ni
   // admin, la puede tocar aquí (a diferencia de readOnly, que solo bloquea
   // el detalle pero deja cambiar la Frecuencia).
-  const isRenewalLocked = Boolean(initialChargeFrequency);
+  const isRenewalLocked = Boolean(initialChargeRules);
 
   
   // operación EXPENSES): egresos pendientes se restan, ingresos pendientes se suman.
@@ -62,10 +63,12 @@ export const CreditForm: React.FC<CreditFormProps> = ({ control, errors, setValu
 
   const chargeRulesOptions: ChargeRuleOption[] = useMemo(
     () =>
-      ChargeRules.map((rule, index) => {
+      ChargeRules.map((rule) => {
         const frequencyLabel = FREQUENCY_LABELS[rule.chargeFrequency ?? ''] ?? rule.chargeFrequency ?? '';
         return {
-          optionId: rule.chargeFrequency ?? `charge-rule-${index}`,
+          // Id armado con todos los valores de la regla — único aunque la
+          // empresa tenga varias reglas de la misma frecuencia (ej. dos "daily").
+          optionId: buildChargeRuleId(rule),
           label: `${frequencyLabel} · ${rule.chargePeriods ?? 0} pagos`,
           chargeFrequency: rule.chargeFrequency,
           chargePeriods: rule.chargePeriods,
@@ -96,15 +99,25 @@ export const CreditForm: React.FC<CreditFormProps> = ({ control, errors, setValu
   // directo en defaultValues del form.
   const autoSelectedRenewalRef = useRef(false);
   useEffect(() => {
-    if (autoSelectedRenewalRef.current || !initialChargeFrequency) return;
-    const matchingOption = chargeRulesOptions.find((option) => option.optionId === initialChargeFrequency);
+    if (autoSelectedRenewalRef.current || !initialChargeRules) return;
+    // 1) La misma regla con la que se creó el crédito (todos sus valores).
+    // 2) Si la empresa cambió esa regla después (ej. otra comisión), la de la
+    //    misma frecuencia y número de pagos.
+    // 3) Si tampoco, la primera de la misma frecuencia.
+    const matchingOption =
+      chargeRulesOptions.find((option) => option.optionId === buildChargeRuleId(initialChargeRules)) ??
+      chargeRulesOptions.find((option) =>
+        option.chargeFrequency === initialChargeRules.chargeFrequency &&
+        option.chargePeriods === initialChargeRules.chargePeriods
+      ) ??
+      chargeRulesOptions.find((option) => option.chargeFrequency === initialChargeRules.chargeFrequency);
     if (!matchingOption) return;
 
     autoSelectedRenewalRef.current = true;
     setValue('selectedChargeRulesId', matchingOption.optionId);
     handleSelectChargeRules(matchingOption.optionId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialChargeFrequency, chargeRulesOptions]);
+  }, [initialChargeRules, chargeRulesOptions]);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
