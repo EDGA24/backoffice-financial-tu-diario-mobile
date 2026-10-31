@@ -29,8 +29,8 @@ export interface CreditFormProps {
   errors: FieldErrors<Credits>;
   setValue: any;
   // Renovación: la regla de cobro completa del crédito que se renueva — se
-  // preselecciona esa misma regla, así que no tiene sentido pedirle al
-  // cobrador que la vuelva a elegir a mano.
+  // preselecciona esa misma regla, pero se puede elegir otra (ej. pasar de
+  // semanal a diario en el nuevo crédito).
   initialChargeRules?: ChargeRules;
 }
 
@@ -40,10 +40,9 @@ export const CreditForm: React.FC<CreditFormProps> = ({ control, errors, setValu
   // Solo admin puede editar a mano periodos/renovación/comisión — el cobrador
   // solo puede cambiar la regla completa (Frecuencia arriba), no sus valores.
   const isAdmin = roles.some((role) => role.toLowerCase() === UserRoleEnum.ADMIN);
-  // Renovación: la regla ya viene fija del crédito original — nadie, ni
-  // admin, la puede tocar aquí (a diferencia de readOnly, que solo bloquea
-  // el detalle pero deja cambiar la Frecuencia).
-  const isRenewalLocked = Boolean(initialChargeRules);
+  // Renovación: arranca con la regla del crédito original preseleccionada,
+  // pero el selector queda libre para elegir otra regla de la empresa.
+  const isRenewal = Boolean(initialChargeRules);
 
   
   // operación EXPENSES): egresos pendientes se restan, ingresos pendientes se suman.
@@ -76,6 +75,7 @@ export const CreditForm: React.FC<CreditFormProps> = ({ control, errors, setValu
           renovationPeriod: rule.renovationPeriod,
           comissionRate: rule.comissionRate,
           firstCharge: rule.firstCharge ?? false,
+          latePaymentCharge: rule.latePaymentCharge,
         };
       }),
     [ChargeRules]
@@ -91,6 +91,8 @@ export const CreditForm: React.FC<CreditFormProps> = ({ control, errors, setValu
     setValue('chargeRules.renovationPeriod', option.renovationPeriod);
     setValue('chargeRules.comissionRate', option.comissionRate);
     setValue('chargeRules.firstCharge', option.firstCharge ?? false);
+    // Moratorio de la regla (opcional): solo se guarda en el crédito, no se cobra al crearlo
+    setValue('chargeRules.latePaymentCharge', option.latePaymentCharge);
   };
 
   // Preselecciona la regla al abrir el form en renovación — una sola vez, para
@@ -136,7 +138,7 @@ export const CreditForm: React.FC<CreditFormProps> = ({ control, errors, setValu
         rules={{ required: 'Selecciona una regla de cobro' }}
         label="Selecciona reglas de cobro"
         readOnly={!isAdmin}
-        disabled={isRenewalLocked}
+        renewalPreselected={isRenewal}
       />
 
       <Typography sx={{ mt: 1, mb: -0.5, fontWeight: 700, fontSize: 16, color: 'primary.main' }}>

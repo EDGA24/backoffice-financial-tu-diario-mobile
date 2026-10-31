@@ -96,6 +96,8 @@ const mapCreditToLoanSummary = (
     amount: formatAmount(credit.creditAmount),
     amountDue: credit.amountDue,
     amountPaid: credit.amountPaid,
+    amountMoratory: credit.amountMoratory,
+    amountPaidMoratory: credit.amountPaidMoratory,
     status: credit.status as LoanStatus,
     employeeId: empleadoId,
     customerId: credit.customerId,

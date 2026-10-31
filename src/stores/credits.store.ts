@@ -18,9 +18,10 @@ import { GetCreditSummaryRequest, GetCreditSummaryResponse } from '@/types/GetCr
 import { useWalletLedgerStore } from './walletLedger.store';
 import { useAuthStore } from './auth.store';
 import { PaymentCategoryEnum } from '@/shared/constants/PaymentCategoryEnum';
+import { GetCreditPaymentsAndIncidentsRequest, GetCreditPaymentsAndIncidentsResponse } from '@/types/GetCreditPaymentsAndIncidentsRequest';
 
-const BASE_URL = "https://credit-saas-gateway.onrender.com/credits";
-// const BASE_URL = "http://localhost:4001/credits";
+// const BASE_URL = "https://credit-saas-gateway.onrender.com/credits";
+const BASE_URL = "http://localhost:4001/credits";
 
 // Resultado del autocomplete de clientes — Customers no trae _id (es el
 // shape para crear un cliente), este sí lo necesita para poder seleccionarlo.
@@ -44,6 +45,7 @@ interface CreditStoreState {
     createCredit: (request: { customer?: Customers, credit: Credits }) => Promise<{ ok: boolean, creditId: string, customerId: string }>,
     createPayment: (request: { creditId: string, customerId: string, customerName?: string, total: number, paymentCategory?: PaymentCategoryEnum }) => Promise<boolean>,
     getPaymentByCredit: (request: GetPaymentRequest) => Promise<{ total: number, records: PaymentTable[] }>,
+    getCreditPaymentsAndIncidents: (request: GetCreditPaymentsAndIncidentsRequest) => Promise<GetCreditPaymentsAndIncidentsResponse>,
     getWalletInfo: (request: GetWalletRequest) => Promise<{ total: number, records: WalletTable[] }>,
     getCreditTotals: (request: GetCreditTotalsRequest) => Promise<GetCreditTotalsResponse>,
     getCreditSummary: (request: GetCreditSummaryRequest) => Promise<GetCreditSummaryResponse[]>
@@ -102,6 +104,14 @@ export const useCreditStore = create<CreditStoreState>()(
                 return {
                     total: get(response.data, "data.total", 0),
                     records: get(response.data, "data.records", [])
+                };
+            },
+            getCreditPaymentsAndIncidents: async (request: GetCreditPaymentsAndIncidentsRequest) => {
+                // Si el crédito no existe o no es visible para el user, data viene como {}.
+                const response = await axios.post<{ data: GetCreditPaymentsAndIncidentsResponse }>(`${BASE_URL}/getCreditPaymentsAndIncidents`, request);
+                return {
+                    payments: get(response.data, "data.payments", []),
+                    incidents: get(response.data, "data.incidents", [])
                 };
             },
             getWalletInfo: async (request: GetWalletRequest) => {

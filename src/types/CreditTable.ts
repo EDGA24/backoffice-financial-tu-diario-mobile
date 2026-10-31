@@ -6,6 +6,8 @@ export interface CreditTable {
     amountDue?:               number;
     amountPaid?:              number;
     creditAmountWithMoratory: number;
+    amountMoratory?: number;
+    amountPaidMoratory?: number;
     creditorCompanyId:        string;
     customerBasicInfo?:       CustomerBasicInfo;
     customerId:               string;
@@ -18,6 +20,7 @@ export interface CreditTable {
     transactionId:            string;
     userId:                   string;
     lastPayment?:             LastPayment;
+    lastPaymentDateApproved?: Date;
 }
 
 export interface LastPayment {
@@ -33,6 +36,7 @@ export interface ChargeRules {
     comissionRate:    number;
     renovationPeriod: number;
     firstCharge?:     boolean;
+    latePaymentCharge?: number;
 }
 
 export interface CustomerBasicInfo {

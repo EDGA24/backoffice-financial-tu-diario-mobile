@@ -20,6 +20,15 @@
                 },
                 "comissionRate": {
                     "type": "number"
+                },
+                "chargeDay": {
+                    "type": "string"
+                },
+                "firstCharge": {
+                    "type": "boolean"
+                },
+                "latePaymentCharge": {
+                    "type": "number"
                 }
             },
             "required": [
@@ -86,10 +95,20 @@
             "type": "string",
             "format": "date-time"
         },
+        "lastPaymentDateApproved": {
+            "type": "string",
+            "format": "date-time"
+        },
         "creditAmount": {
             "type": "number"
         },
         "creditAmountWithMoratory": {
+            "type": "number"
+        },
+        "amountMoratory": {
+            "type": "number"
+        },
+        "amountPaidMoratory": {
             "type": "number"
         },
         "fixedCharge": {

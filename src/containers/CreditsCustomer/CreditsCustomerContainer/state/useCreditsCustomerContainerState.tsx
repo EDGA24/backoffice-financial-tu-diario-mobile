@@ -265,6 +265,7 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
             created: Date.now(),
             creditAmount: 0,
             creditAmountWithMoratory: 0,
+            amountMoratory: 0,
             expirationDate: Date.now(),
             fixedCharge: 0,
             startDateChargeConfig: Date.now(),
@@ -363,6 +364,14 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
         setValueAval('contact.lastName', get(selected, 'contact.lastName', ''), fill);
         setValueAval('contact.address', get(selected, 'contact.address', ''), fill);
         setValueAval('contact.phoneNumber', get(selected, 'contact.phoneNumber', ''), fill);
+        // La ubicación solo se copia si el cliente sí la tiene (los migrados no
+        // traen) — así no se guarda vacía ni se borra la que se capturó a mano.
+        const latitude: string = get(selected, 'contact.ubication.latitude', '');
+        const longitude: string = get(selected, 'contact.ubication.longitude', '');
+        if (latitude && longitude) {
+            setValueAval('contact.ubication.latitude', latitude, fill);
+            setValueAval('contact.ubication.longitude', longitude, fill);
+        }
     };
 
     // Mismo buscador con debounce que el de "cliente existente".
@@ -426,6 +435,7 @@ export const useCreditsCustomerContainerState = (): IUseCreditsCustomerContainer
             creditAmount: get(creditFormState, 'creditAmount', 0),
 
             creditAmountWithMoratory: get(creditFormState, 'creditAmountWithMoratory', 0),
+            amountMoratory: get(creditFormState, 'amountMoratory', 0),
             expirationDate: get(creditFormState, 'expirationDate'),
             fixedCharge: get(creditFormState, 'fixedCharge', 0),
             startDateChargeConfig: get(creditFormState, 'startDateChargeConfig'),

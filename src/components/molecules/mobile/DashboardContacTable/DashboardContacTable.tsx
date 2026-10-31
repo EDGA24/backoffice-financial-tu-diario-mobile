@@ -17,6 +17,8 @@ export interface PaymentRecord {
   amount: number;
   status: 'pagado' | 'atrasado' | 'pendiente' | 'cancelado';
   method?: string;
+  // Solo en incidencias (faltas): cargo moratorio registrado para esa falta.
+  latePaymentCharge?: number;
 }
 
 export interface LoanSummary {
@@ -27,6 +29,10 @@ export interface LoanSummary {
   amount: string;
   amountDue?: number;
   amountPaid?: number;
+  // Total acumulado de cargos por faltas (moratorio) del crédito.
+  amountMoratory?: number;
+  // Lo abonado al cargo por faltas (para la barra de avance de faltas).
+  amountPaidMoratory?: number;
   status: LoanStatus;
   historialPagos?: PaymentRecord[];
   employeeId?: string;

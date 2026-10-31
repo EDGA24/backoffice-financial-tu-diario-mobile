@@ -4,6 +4,9 @@ export interface ProgressBarProps {
   value: number; 
   label?: string;
   showPercentage?: boolean;
+  // Color fijo opcional (ej. 'error.main' para la barra de faltas); si no
+  // viene, el color depende del avance.
+  color?: string;
 }
 
 function getColor(value: number): string {
@@ -13,9 +16,9 @@ function getColor(value: number): string {
   return 'error.main';
 }
 
-export default function ProgressBar({ value, label, showPercentage = true }: ProgressBarProps) {
+export default function ProgressBar({ value, label, showPercentage = true, color: fixedColor }: ProgressBarProps) {
   const clamped = Math.min(100, Math.max(0, value));
-  const color = getColor(clamped);
+  const color = fixedColor ?? getColor(clamped);
 
   return (
     <Box sx={{ width: '100%' }}>

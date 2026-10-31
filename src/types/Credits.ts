@@ -7,6 +7,8 @@ export interface Credits {
     creditId?:                 string;
     creditAmount?:             number;
     creditAmountWithMoratory?: number;
+    amountMoratory?: number;
+    amountPaidMoratory?: number;
     creditorCompanyId:         string;
     customerId:                string;
     // Solo del request: el backend lo usa para la descripción de la
@@ -35,6 +37,9 @@ export interface ChargeRules {
     // Viene de la regla de la empresa: si es true, se registra el primer
     // pago en cuanto se crea el crédito (nuevo o renovación).
     firstCharge?:      boolean;
+    // Moratorio fijo en pesos (ej. 50 = $50) por incumplimiento — solo se
+    // guarda en el crédito; el cargo lo aplicará el cron de incidencias.
+    latePaymentCharge?: number;
 }
 
 export enum CreationStatus {

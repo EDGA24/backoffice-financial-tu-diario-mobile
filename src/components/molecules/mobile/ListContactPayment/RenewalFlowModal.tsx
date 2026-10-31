@@ -17,6 +17,8 @@ import { alpha } from '@mui/material/styles';
 import AutorenewRoundedIcon from '@mui/icons-material/AutorenewRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ErrorRoundedIcon from '@mui/icons-material/ErrorRounded';
+import FaltasWarningBanner from './FaltasWarningBanner';
+import { getFaltasPendientes } from '@/shared/utils/moratoryUtils';
 import { useCreditStore } from '@/stores/credits.store';
 import { PaymentCategoryEnum } from '@/shared/constants/PaymentCategoryEnum';
 import type { LoanSummary } from '../DashboardContacTable/DashboardContacTable';
@@ -37,9 +39,13 @@ const STEP_CREDIT_PREP_DELAY_MS = 3200;
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const formatMoney = (value: number) =>
+    `$${value.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 // Mensajes que rotan mientras un paso está "activo" — le dan textura al
 // proceso (que se sienta como que de verdad está pasando algo) en vez de
 // solo un spinner mudo y estático.
+const FALTA_MESSAGES = ['Conectando con tu wallet…', 'Registrando el pago del cargo por faltas…'];
 const PAGO_MESSAGES = ['Conectando con tu wallet…', 'Verificando saldo disponible…', 'Registrando el pago…'];
 const INFO_MESSAGES = ['Sincronizando datos del cliente…'];
 const CREDITO_MESSAGES = ['Preparando el nuevo crédito…', 'Redirigiendo a la vista de crear créditos…'];
@@ -78,6 +84,8 @@ export default function RenewalFlowModal({ open, loan, onClose, onReadyToCreateC
 
     const [step, setStep] = useState<RenewalStep>('intro');
     const [error, setError] = useState<string | null>(null);
+    // Solo se usa si el crédito tiene cargo por faltas: se paga antes que la renovación
+    const [rowFalta, setRowFalta] = useState<TrackRowState>('pending');
     const [rowPago, setRowPago] = useState<TrackRowState>('pending');
     const [rowInfo, setRowInfo] = useState<TrackRowState>('pending');
     const [rowCredito, setRowCredito] = useState<TrackRowState>('pending');
@@ -95,6 +103,7 @@ export default function RenewalFlowModal({ open, loan, onClose, onReadyToCreateC
         setTimeout(() => {
             setStep('intro');
             setError(null);
+            setRowFalta('pending');
             setRowPago('pending');
             setRowInfo('pending');
             setRowCredito('pending');
@@ -106,14 +115,38 @@ export default function RenewalFlowModal({ open, loan, onClose, onReadyToCreateC
     // (ej. un pago grande al inicio), cobrar fixedCharge de más se pasaría
     // del amountDue. Mismo cálculo que usa "Liquidar" en ContactPaymentList.
     const restante = Math.max(0, (loan?.amountDue ?? 0) - (loan?.amountPaid ?? 0));
+    // Cargo por faltas: si hay, se cobra primero; sin pagarlo no se renueva.
+    const cargoPorFaltas = getFaltasPendientes(loan);
+    const tieneFaltas = cargoPorFaltas > 0;
 
     const runTracking = async () => {
         if (!loan?.creditId) return;
         setStep('tracking');
         setError(null);
-        setRowPago('active');
 
         try {
+            // 0. Cargo por faltas (si tiene) — si ya se pagó en un intento anterior, no se repite
+            if (tieneFaltas && rowFalta !== 'done') {
+                setRowFalta('active');
+                const [okFalta] = await Promise.all([
+                    createPayment({
+                        creditId: loan.creditId,
+                        customerId: loan.customerId ?? '',
+                        customerName: loan.name,
+                        total: cargoPorFaltas,
+                        paymentCategory: PaymentCategoryEnum.MORATORY,
+                    }),
+                    wait(MIN_PAGO_DURATION_MS),
+                ]);
+                if (!okFalta) {
+                    setRowFalta('error');
+                    setError('No se pudo registrar el pago del cargo por faltas. Verifica el saldo disponible.');
+                    return;
+                }
+                setRowFalta('done');
+            }
+
+            setRowPago('active');
             const [ok] = await Promise.all([
                 createPayment({
                     creditId: loan.creditId,
@@ -149,38 +182,45 @@ export default function RenewalFlowModal({ open, loan, onClose, onReadyToCreateC
             );
         } catch (err) {
             console.error('Error al registrar el pago de renovación:', err);
-            setRowPago('error');
+            setRowFalta((prev) => (prev === 'active' ? 'error' : prev));
+            setRowPago((prev) => (prev === 'pending' ? prev : 'error'));
             setError('No se pudo registrar el pago. Intenta de nuevo.');
         }
     };
 
     const handleReintentar = () => {
+        // El cargo por faltas que ya quedó pagado se conserva como 'done'
+        setRowFalta((prev) => (prev === 'done' ? 'done' : 'pending'));
         setRowPago('pending');
         setRowInfo('pending');
         setRowCredito('pending');
         setStep('confirm');
     };
 
+    const faltaMsg = useRotatingMessage(rowFalta === 'active', FALTA_MESSAGES);
     const pagoMsg = useRotatingMessage(rowPago === 'active', PAGO_MESSAGES);
     const infoMsg = useRotatingMessage(rowInfo === 'active', INFO_MESSAGES);
     // Con 900ms de intervalo y STEP_CREDIT_PREP_DELAY_MS (3.2s), el primer
     // mensaje se ve brevemente y "Redirigiendo..." se queda ~2.3s en pantalla
     // — a propósito, es el mensaje que debe notarse antes de navegar.
     const creditoMsg = useRotatingMessage(rowCredito === 'active', CREDITO_MESSAGES, 900);
-    const activeMessage = pagoMsg ?? infoMsg ?? creditoMsg;
+    const activeMessage = faltaMsg ?? pagoMsg ?? infoMsg ?? creditoMsg;
 
     if (!loan) return null;
 
-    const cuotaNumber = restante;
+    // Lo que se cobra en total: lo que falta del crédito + el cargo por faltas (si tiene)
+    const cuotaNumber = restante + cargoPorFaltas;
     // Genérico a propósito: hoy solo el pago puede fallar de verdad (es el
     // único paso con llamada real al backend), pero el diseño reacciona a
     // CUALQUIER paso que termine en error, no solo al del pago.
-    const hasError = rowPago === 'error' || rowInfo === 'error' || rowCredito === 'error';
+    const hasError = rowFalta === 'error' || rowPago === 'error' || rowInfo === 'error' || rowCredito === 'error';
     // No cerrable durante TODO el tracking (no solo mientras el pago está
     // activo) — solo se puede cerrar si ya terminó con error.
     const closable = !(step === 'tracking' && !hasError);
     const stepValue = (s: TrackRowState) => (s === 'done' ? 1 : s === 'active' ? 0.5 : 0);
-    const ringProgress = (stepValue(rowPago) + stepValue(rowInfo) + stepValue(rowCredito)) / 3;
+    const ringProgress = tieneFaltas
+        ? (stepValue(rowFalta) + stepValue(rowPago) + stepValue(rowInfo) + stepValue(rowCredito)) / 4
+        : (stepValue(rowPago) + stepValue(rowInfo) + stepValue(rowCredito)) / 3;
 
     return (
         <Drawer
@@ -232,12 +272,22 @@ export default function RenewalFlowModal({ open, loan, onClose, onReadyToCreateC
                     <Box>
                         {step === 'intro' && (
                             <>
+                                {tieneFaltas && (
+                                    <Box sx={{ mb: 2 }}>
+                                        <FaltasWarningBanner
+                                            amount={cargoPorFaltas}
+                                            action="renovar"
+                                            chargePerFalta={loan.chargeRules?.latePaymentCharge}
+                                        />
+                                    </Box>
+                                )}
                                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                                     Para renovar este crédito se registrará el pago de lo que falta para
                                     liquidarlo y posteriormente se cargará la información del cliente para
                                     registrar el nuevo crédito.
                                 </Typography>
                                 <Stack spacing={1.5}>
+                                    {tieneFaltas && <TrackRow label="Registrar pago del cargo por faltas" state="pending" />}
                                     <TrackRow label="Registrar pago de renovación" state="pending" />
                                     <TrackRow label="Cargar información del cliente" state="pending" />
                                     <TrackRow label="Registrar nuevo crédito" state="pending" />
@@ -284,7 +334,9 @@ export default function RenewalFlowModal({ open, loan, onClose, onReadyToCreateC
                                         <CountUpAmount value={cuotaNumber} />
                                     </Typography>
                                     <Typography variant="caption" sx={{ opacity: 0.85, position: 'relative' }}>
-                                        Lo que falta para liquidar el crédito actual
+                                        {tieneFaltas
+                                            ? `${formatMoney(cargoPorFaltas)} de faltas + ${formatMoney(restante)} para liquidar el crédito actual`
+                                            : 'Lo que falta para liquidar el crédito actual'}
                                     </Typography>
                                 </Box>
                                 <Typography variant="body2" color="text.secondary">
@@ -307,6 +359,7 @@ export default function RenewalFlowModal({ open, loan, onClose, onReadyToCreateC
                                 </ProgressRing>
 
                                 <Stack spacing={1.75}>
+                                    {tieneFaltas && <TrackRow label="Registrar pago del cargo por faltas" state={rowFalta} />}
                                     <TrackRow label="Registrar pago de renovación" state={rowPago} />
                                     <TrackRow label="Cargar información del cliente" state={rowInfo} />
                                     <TrackRow label="Registrar nuevo crédito" state={rowCredito} />

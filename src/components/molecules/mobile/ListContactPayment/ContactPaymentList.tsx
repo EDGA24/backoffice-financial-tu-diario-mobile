@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -29,6 +29,8 @@ import PaymentHistoryModal from './PaymentHistoryModal';
 import LocationViewModal from './LocationViewModal';
 import PaymentAmountModal from './PaymentAmountModal';
 import RenewalFlowModal from './RenewalFlowModal';
+import LiquidationFlowModal from './LiquidationFlowModal';
+import { getFaltasPendientes } from '@/shared/utils/moratoryUtils';
 import TransactionStatusOverlay, {
   type TransactionOverlayStatus,
 } from '../TransactionStatusOverlay/TransactionStatusOverlay';
@@ -39,6 +41,7 @@ import AutorenewRoundedIcon from '@mui/icons-material/AutorenewRounded';
 import { useNavigate } from 'react-router-dom';
 import { useCreditStore } from '@/stores/credits.store';
 import type { PaymentTable } from '@/types/PaymentTable';
+import type { IncidentTable } from '@/types/IncidentTable';
 import { PENDING_APPROVAL_YELLOW, ON_TIME_PAYMENT_GREEN, RENEWAL_AVAILABLE_CYAN } from '@/shared/constants/statusColors';
 
 // Cuánto se queda visible el aviso de "éxito" antes de ocultarse solo.
@@ -78,6 +81,26 @@ const mapPaymentToRecord = (payment: PaymentTable, index: number): PaymentRecord
   method: payment.paymentMethod,
 });
 
+// Incidencia = falta: se muestra como un registro en $0 (PaymentHistoryModal la
+// pinta como "Falta") con su cargo moratorio.
+const mapIncidentToRecord = (incident: IncidentTable, index: number): PaymentRecord => ({
+  id: incident._id ?? `falta-${index}`,
+  date: formatPaymentDate(incident.createdAt),
+  amount: 0,
+  status: 'atrasado',
+  latePaymentCharge: incident.latePaymentCharge,
+});
+
+// Historial del modal: pagos e incidencias en una sola lista, del más antiguo
+// al más reciente.
+const buildHistorial = (payments: PaymentTable[], incidents: IncidentTable[]): PaymentRecord[] =>
+  [
+    ...payments.map((payment, i) => ({ createdAt: payment.createdAt, record: mapPaymentToRecord(payment, i) })),
+    ...incidents.map((incident, i) => ({ createdAt: incident.createdAt, record: mapIncidentToRecord(incident, i) })),
+  ]
+    .sort((a, b) => new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime())
+    .map(({ record }) => record);
+
 export interface ContactPaymentListProps {
   loans: LoanSummary[];
   onPagar?: (loan: LoanSummary, index: number, amount: number, paymentCategory?: PaymentCategoryEnum) => Promise<boolean> | boolean;
@@ -93,15 +116,20 @@ export default function ContactPaymentList({
   emptyMessage = 'No hay registros por mostrar',
 }: ContactPaymentListProps) {
   const navigate = useNavigate();
-  const { getPaymentByCredit } = useCreditStore();
+  const { getPaymentByCredit, getCreditPaymentsAndIncidents } = useCreditStore();
   const [pagandoIndex, setPagandoIndex] = useState<number | null>(null);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [loanEnModal, setLoanEnModal] = useState<LoanSummary | null>(null);
   const [loanEnUbicacionModal, setLoanEnUbicacionModal] = useState<LoanSummary | null>(null);
   const [loanEnPagoModal, setLoanEnPagoModal] = useState<{ loan: LoanSummary; index: number; mode: 'pago' | 'liquidar' } | null>(null);
   const [pagoError, setPagoError] = useState<string | null>(null);
+  // Si el pago principal ya quedó registrado y solo falló el abono a faltas,
+  // el reintento manda únicamente el abono (no duplica el pago).
+  const pagoPrincipalRegistradoRef = useRef(false);
   const [pagoOverlayStatus, setPagoOverlayStatus] = useState<TransactionOverlayStatus>(null);
   const [loanEnRenovacionModal, setLoanEnRenovacionModal] = useState<LoanSummary | null>(null);
+  // Liquidación de un crédito con cargo por faltas (2 pagos: faltas + liquidación)
+  const [loanEnLiquidacionModal, setLoanEnLiquidacionModal] = useState<{ loan: LoanSummary; index: number } | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [menuIndex, setMenuIndex] = useState<number | null>(null);
   const [loadingHistorialIndex, setLoadingHistorialIndex] = useState<number | null>(null);
@@ -133,6 +161,7 @@ export default function ContactPaymentList({
     e.stopPropagation();
     handleCerrarMenuAcciones();
     setPagoError(null);
+    pagoPrincipalRegistradoRef.current = false;
     setLoanEnPagoModal({ loan, index, mode: 'pago' });
   };
 
@@ -147,10 +176,17 @@ export default function ContactPaymentList({
     e.stopPropagation();
     handleCerrarMenuAcciones();
     setPagoError(null);
+    // Con cargo por faltas: flujo de 2 pagos (faltas + liquidación); sin
+    // faltas, el modal de liquidación de siempre.
+    if (getFaltasPendientes(loan) > 0) {
+      setLoanEnLiquidacionModal({ loan, index });
+      return;
+    }
+    pagoPrincipalRegistradoRef.current = false;
     setLoanEnPagoModal({ loan, index, mode: 'liquidar' });
   };
 
-  const handleConfirmarPago = async (amount: number) => {
+  const handleConfirmarPago = async (amount: number, moratoryAmount: number) => {
     if (!loanEnPagoModal || pagandoIndex !== null || !onPagar) return;
     const { loan, index, mode } = loanEnPagoModal;
     setPagoError(null);
@@ -160,13 +196,30 @@ export default function ContactPaymentList({
       // periodo — no debe contar como "Cobrado" en getCreditTotals (ver
       // PaymentCategoryEnum en el backend).
       const paymentCategory = mode === 'liquidar' ? PaymentCategoryEnum.LIQUIDATION : PaymentCategoryEnum.CHARGE_PERIOD;
-      const ok = await onPagar(loan, index, amount, paymentCategory);
-      if (!ok) {
-        // Se queda el modal abierto con el monto capturado, para reintentar
-        // sin tener que volver a escribirlo.
-        setPagoError('No se pudo registrar el pago. Intenta de nuevo.');
-        return;
+
+      // 1. Pago principal — si ya se registró en un intento anterior (falló
+      // solo el abono a faltas), no se vuelve a mandar.
+      if (!pagoPrincipalRegistradoRef.current) {
+        const ok = await onPagar(loan, index, amount, paymentCategory);
+        if (!ok) {
+          // Se queda el modal abierto con el monto capturado, para reintentar
+          // sin tener que volver a escribirlo.
+          setPagoError('No se pudo registrar el pago. Intenta de nuevo.');
+          return;
+        }
+        pagoPrincipalRegistradoRef.current = true;
       }
+
+      // 2. Abono a faltas (opcional): otra transacción aparte; con 0 no se crea.
+      if (moratoryAmount > 0) {
+        const okMoratorio = await onPagar(loan, index, moratoryAmount, PaymentCategoryEnum.MORATORY);
+        if (!okMoratorio) {
+          setPagoError('El pago se registró, pero no el abono a faltas. Reintenta para registrar solo el abono.');
+          return;
+        }
+      }
+
+      pagoPrincipalRegistradoRef.current = false;
       setLoanEnPagoModal(null);
       setPagoOverlayStatus('success');
       setTimeout(() => setPagoOverlayStatus(null), SUCCESS_OVERLAY_DURATION_MS);
@@ -238,8 +291,8 @@ export default function ContactPaymentList({
 
     try {
       setLoadingHistorialIndex(index);
-      const { records } = await getPaymentByCredit({ creditId: loan.creditId });
-      setLoanEnModal({ ...loan, historialPagos: records.map(mapPaymentToRecord) });
+      const { payments, incidents } = await getCreditPaymentsAndIncidents({ creditId: loan.creditId });
+      setLoanEnModal({ ...loan, historialPagos: buildHistorial(payments, incidents) });
     } catch (error) {
       console.error('Error al obtener el historial de pagos:', error);
       setLoanEnModal({ ...loan, historialPagos: [] });
@@ -501,11 +554,23 @@ export default function ContactPaymentList({
         onClose={() => {
           setLoanEnPagoModal(null);
           setPagoError(null);
+          pagoPrincipalRegistradoRef.current = false;
         }}
         onConfirm={handleConfirmarPago}
       />
 
       <TransactionStatusOverlay status={pagoOverlayStatus} successLabel="¡Pago registrado!" />
+
+      <LiquidationFlowModal
+        open={loanEnLiquidacionModal !== null}
+        loan={loanEnLiquidacionModal?.loan ?? null}
+        onClose={() => setLoanEnLiquidacionModal(null)}
+        onPagar={(amount, paymentCategory) =>
+          loanEnLiquidacionModal && onPagar
+            ? onPagar(loanEnLiquidacionModal.loan, loanEnLiquidacionModal.index, amount, paymentCategory)
+            : false
+        }
+      />
 
       <RenewalFlowModal
         open={loanEnRenovacionModal !== null}

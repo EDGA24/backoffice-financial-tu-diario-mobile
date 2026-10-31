@@ -4,6 +4,7 @@ import InputFormatField from '@/components/atoms/FormInputFileds/InputFormatFiel
 import AutocompleteFormatField, {
   type AutocompleteOption,
 } from '@/components/atoms/FormInputFileds/AutocompleteFormatField/AutocompleteFormatField';
+import LocationPickerField from '@/components/molecules/mobile/LocationPickerField/LocationPickerField';
 import { CustomerFormContactEnum } from '@/shared/constants/CustomerFormFieldsEnum';
 import type { Aval } from '@/types/Customers';
 import type { IFormProps } from '@/shared/interfaces/IFormProps';
@@ -82,6 +83,13 @@ export const AvalForm: React.FC<AvalFormProps> = ({ control, errors, customerSel
         digitsOnly
         label="Teléfono"
         placeholder="10 dígitos sin espacios"
+      />
+
+      <LocationPickerField
+        control={control}
+        latitudeName={CustomerFormContactEnum.UBICATION_LATITUDE}
+        longitudeName={CustomerFormContactEnum.UBICATION_LONGITUDE}
+        label="Ubicación GPS"
       />
     </Box>
   );

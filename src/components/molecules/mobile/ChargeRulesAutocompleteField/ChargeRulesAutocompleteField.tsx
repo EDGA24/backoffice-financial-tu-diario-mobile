@@ -36,6 +36,9 @@ export interface ChargeRulesAutocompleteFieldProps {
   // fija del crédito que se está renovando — nadie, ni admin, la puede
   // cambiar aquí. Distinto de readOnly, que solo bloquea el detalle.
   disabled?: boolean;
+  // Renovación: la regla del crédito anterior viene preseleccionada, pero se
+  // puede cambiar — solo cambia el texto de ayuda.
+  renewalPreselected?: boolean;
 }
 
 function ReadOnlyRow({ label, value }: { label: string; value: string }) {
@@ -75,6 +78,7 @@ const ChargeRulesAutocompleteField: React.FC<ChargeRulesAutocompleteFieldProps> 
   sx = {},
   readOnly = false,
   disabled = false,
+  renewalPreselected = false,
 }) => {
   const fieldError = get(errors, name);
   // En renovación el detalle también se ve fijo, sin importar el rol — la
@@ -113,7 +117,8 @@ const ChargeRulesAutocompleteField: React.FC<ChargeRulesAutocompleteFieldProps> 
                   helperText={
                     disabled
                       ? 'Viene fija del crédito que se está renovando'
-                      : (fieldError?.message as string) ?? ' '
+                      : (fieldError?.message as string) ??
+                        (renewalPreselected ? 'Es la regla del crédito anterior, puedes elegir otra' : ' ')
                   }
                 />
               )}
@@ -149,7 +154,11 @@ const ChargeRulesAutocompleteField: React.FC<ChargeRulesAutocompleteFieldProps> 
                     />
                     <ReadOnlyRow label="Periodos" value={String(selectedOption.chargePeriods ?? '—')} />
                     <ReadOnlyRow label="Periodo de renovación" value={String(selectedOption.renovationPeriod ?? '—')} />
-                    <ReadOnlyRow label="Tasa de comisión" value={`${selectedOption.comissionRate ?? '—'}%`} />
+                    {/* comissionRate viene como decimal (0.2 = 20%) */}
+                    <ReadOnlyRow
+                      label="Tasa de comisión"
+                      value={selectedOption.comissionRate == null ? '—' : `${Math.round(selectedOption.comissionRate * 100)}%`}
+                    />
                   </Box>
                 ) : (
                   <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>

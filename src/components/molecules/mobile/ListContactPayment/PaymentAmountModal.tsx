@@ -4,6 +4,7 @@ import {
     Box,
     Button,
     Chip,
+    Collapse,
     Divider,
     Drawer,
     IconButton,
@@ -16,6 +17,8 @@ import { alpha, useTheme } from '@mui/material/styles';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import PaidRoundedIcon from '@mui/icons-material/PaidRounded';
 import type { LoanSummary } from '../DashboardContacTable/DashboardContacTable';
+import MoratoryAbonoSection from './MoratoryAbonoSection';
+import { getFaltasPendientes } from '@/shared/utils/moratoryUtils';
 
 const formatMoney = (value: number) =>
     `$${value.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
@@ -26,7 +29,9 @@ export interface PaymentAmountModalProps {
     loading?: boolean;
     error?: string | null;
     onClose: () => void;
-    onConfirm: (amount: number) => void;
+    // moratoryAmount: abono opcional al cargo por faltas (solo en pago normal);
+    // si es 0 no se registra esa transacción.
+    onConfirm: (amount: number, moratoryAmount: number) => void;
     // 'liquidar': precarga lo que falta por pagar (amountDue - amountPaid) en
     // vez de la cuota fija — mismo modal/flujo de pago, mismo endpoint, solo
     // cambia el monto sugerido al abrir.
@@ -43,7 +48,12 @@ export default function PaymentAmountModal({
     mode = 'pago',
 }: PaymentAmountModalProps) {
     const [amount, setAmount] = useState('');
+    const [moratoryAmount, setMoratoryAmount] = useState(0);
     const isLiquidar = mode === 'liquidar';
+    // Cargo por faltas pendiente: en un pago normal se le recuerda al cobrador
+    // que puede abonar algo (o todo) en el mismo cobro.
+    const cargoPorFaltas = getFaltasPendientes(loan);
+    const showMoratory = !isLiquidar && cargoPorFaltas > 0;
     // Mismo verde "success" del theme de la app (el que ya usa el botón
     // "Pagado" en la tarjeta) — no un color ad-hoc nuevo.
     const theme = useTheme();
@@ -61,11 +71,16 @@ export default function PaymentAmountModal({
             } else {
                 setAmount(loan?.fixedCharge ? String(loan.fixedCharge) : '');
             }
+            // El abono a faltas siempre arranca en 0: es opcional
+            setMoratoryAmount(0);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, loan?.creditId, isLiquidar]);
 
     const amountNumber = Number(amount);
+    // Solo se registra el abono a faltas si es mayor a 0
+    const abonaAlgo = showMoratory && moratoryAmount > 0;
+    const totalHoy = amountNumber + (abonaAlgo ? moratoryAmount : 0);
     const isValid = amount.trim() !== '' && !Number.isNaN(amountNumber) && amountNumber > 0;
 
     const handleClose = () => {
@@ -78,7 +93,7 @@ export default function PaymentAmountModal({
         // No se limpia el campo aquí — si falla, el usuario necesita poder
         // reintentar sin volver a escribir el monto. Se limpia solo al volver
         // a abrir el modal (ver el useEffect de arriba).
-        onConfirm(amountNumber);
+        onConfirm(amountNumber, abonaAlgo ? moratoryAmount : 0);
     };
 
     return (
@@ -92,6 +107,9 @@ export default function PaymentAmountModal({
                         borderTopLeftRadius: 20,
                         borderTopRightRadius: 20,
                         maxHeight: '85vh',
+                        // Contenido con scroll y botones fijos abajo (no se enciman)
+                        display: 'flex',
+                        flexDirection: 'column',
                         // Franja de acento arriba del todo en liquidación, para que se
                         // distinga incluso antes de leer el título (útil al abrirse
                         // desde abajo, la primera fracción de segundo que se ve).
@@ -104,7 +122,7 @@ export default function PaymentAmountModal({
         >
             {loan && (
                 <>
-                    <Box sx={{ px: 3, pt: 3, pb: 2 }}>
+                    <Box sx={{ px: 3, pt: 3, pb: 2, flex: 1, minHeight: 0, overflowY: 'auto' }}>
                         <Box
                             sx={{
                                 display: 'flex',
@@ -242,11 +260,40 @@ export default function PaymentAmountModal({
                                 htmlInput: { readOnly: isLiquidar },
                             }}
                         />
+
+                        {showMoratory && (
+                            <MoratoryAbonoSection
+                                total={cargoPorFaltas}
+                                chargePerFalta={loan.chargeRules?.latePaymentCharge}
+                                value={moratoryAmount}
+                                onChange={setMoratoryAmount}
+                                disabled={loading}
+                            />
+                        )}
+
+                        {/* Desglose del cobro: solo si abona algo a faltas */}
+                        <Collapse in={abonaAlgo} timeout={200} unmountOnExit>
+                            <Stack spacing={0.5} sx={{ mt: 2 }}>
+                                <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+                                    <Typography variant="body2" color="text.secondary">Pago del crédito</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatMoney(amountNumber || 0)}</Typography>
+                                </Stack>
+                                <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+                                    <Typography variant="body2" sx={{ color: 'error.main' }}>Abono a faltas</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'error.main' }}>{formatMoney(moratoryAmount)}</Typography>
+                                </Stack>
+                                <Divider sx={{ my: 0.5 }} />
+                                <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                    <Typography sx={{ fontWeight: 700 }}>Total a cobrar hoy</Typography>
+                                    <Typography sx={{ fontWeight: 800, fontSize: 20 }}>{formatMoney(totalHoy || 0)}</Typography>
+                                </Stack>
+                            </Stack>
+                        </Collapse>
                     </Box>
 
                     <Divider />
 
-                    <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1.5, px: 3, py: 2.5 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1.5, px: 3, py: 2.5, flexShrink: 0 }}>
                         <Button
                             fullWidth
                             variant="text"
@@ -272,7 +319,7 @@ export default function PaymentAmountModal({
                             disabled={!isValid || loading}
                             sx={{ textTransform: 'none', fontWeight: 700, borderRadius: 999, py: 1.25 }}
                         >
-                            {loading ? 'Enviando...' : error ? 'Reintentar' : isLiquidar ? 'Liquidar crédito' : 'Confirmar pago'}
+                            {loading ? 'Enviando...' : error ? 'Reintentar' : isLiquidar ? 'Liquidar crédito' : abonaAlgo ? `Cobrar ${formatMoney(totalHoy || 0)}` : 'Confirmar pago'}
                         </Button>
                     </Box>
                 </>

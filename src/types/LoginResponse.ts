@@ -14,6 +14,7 @@ export interface LoginResponseChargeRules {
     renovationPeriod?: number;
     comissionRate?:    number;
     firstCharge?:      boolean;
+    latePaymentCharge?: number;
 }
 
 export interface LoginResponseUser {

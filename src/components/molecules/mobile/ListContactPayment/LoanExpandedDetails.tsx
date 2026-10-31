@@ -2,6 +2,7 @@ import { Box, CircularProgress, Divider, Stack, Typography } from '@mui/material
 import PaymentsRoundedIcon from '@mui/icons-material/PaymentsRounded';
 import EventRoundedIcon from '@mui/icons-material/EventRounded';
 import AccountBalanceWalletRoundedIcon from '@mui/icons-material/AccountBalanceWalletRounded';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import ProgressBar from '@/components/atoms/ProgressBar/ProgressBar';
 import type { LoanSummary } from '../DashboardContacTable/DashboardContacTable';
 import type { PaymentTable } from '@/types/PaymentTable';
@@ -21,10 +22,13 @@ function InfoRow({
   icon,
   label,
   value,
+  valueColor,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  // Color opcional del valor (ej. 'error.main' para el cargo por faltas)
+  valueColor?: string;
 }) {
   return (
     <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flex: 1, minWidth: 120 }}>
@@ -46,7 +50,7 @@ function InfoRow({
         <Typography variant="caption" color="text.secondary" component="div" noWrap>
           {label}
         </Typography>
-        <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>
+        <Typography variant="body2" sx={{ fontWeight: 700, ...(valueColor && { color: valueColor }) }} noWrap>
           {value}
         </Typography>
       </Box>
@@ -60,8 +64,15 @@ export default function LoanExpandedDetails({ loan, realPayments, loadingRealPay
   // refleja solo dinero confirmado, no pagos todavía pendientes de aprobar.
   const montoPagado = loan.amountPaid ?? 0;
   const montoPorPagar = loan.amountDue ?? 0;
+  // Total de cargos por faltas (amountMoratory); los créditos anteriores al
+  // campo no lo traen y se muestran en $0.
+  const cargoPorFaltas = loan.amountMoratory ?? 0;
+  // Lo abonado a faltas (amountPaidMoratory), para su propia barra de avance
+  const pagadoFaltas = loan.amountPaidMoratory ?? 0;
 
   const progresoPagos = montoPorPagar > 0 ? Math.min(100, (montoPagado / montoPorPagar) * 100) : 0;
+  const progresoFaltas = cargoPorFaltas > 0 ? Math.min(100, (pagadoFaltas / cargoPorFaltas) * 100) : 0;
+  const formatMoney = (value: number) => `$${value.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
 
   // Próximo pago = un periodo después del último REGISTRO de cobro (aunque
   // haya sido en $0) — el cobrador sigue visitando cada semana según el
@@ -85,10 +96,21 @@ export default function LoanExpandedDetails({ loan, realPayments, loadingRealPay
           <CircularProgress size={20} />
         </Box>
       ) : (
-        <ProgressBar
-          value={progresoPagos}
-          label={`$${montoPagado.toLocaleString('es-MX', { minimumFractionDigits: 2 })} de $${montoPorPagar.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`}
-        />
+        <Stack spacing={1.5}>
+          <ProgressBar
+            value={progresoPagos}
+            label={`$${montoPagado.toLocaleString('es-MX', { minimumFractionDigits: 2 })} de $${montoPorPagar.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`}
+          />
+          {/* Avance del pago de faltas: solo si el crédito tiene cargo por faltas.
+              Rojo mientras falte, verde al cubrirlas. */}
+          {cargoPorFaltas > 0 && (
+            <ProgressBar
+              value={progresoFaltas}
+              label={`Faltas: ${formatMoney(pagadoFaltas)} de ${formatMoney(cargoPorFaltas)}`}
+              color={progresoFaltas >= 100 ? 'success.main' : 'error.main'}
+            />
+          )}
+        </Stack>
       )}
 
       <Stack
@@ -117,6 +139,12 @@ export default function LoanExpandedDetails({ loan, realPayments, loadingRealPay
             value={proximoPago}
           />
         )}
+        <InfoRow
+          icon={<WarningAmberRoundedIcon sx={{ fontSize: 15, color: 'error.main' }} />}
+          label="Cargo por faltas"
+          value={`$${cargoPorFaltas.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`}
+          valueColor="error.main"
+        />
       </Stack>
     </Box>
   );

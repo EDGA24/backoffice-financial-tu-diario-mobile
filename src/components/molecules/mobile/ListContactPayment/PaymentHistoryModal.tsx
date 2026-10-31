@@ -30,7 +30,7 @@ const PARTIAL_LEGEND_ITEM = {
     description: 'El monto pagado fue menor a la cuota del crédito.',
 };
 
-// Pago registrado en $0 = el cliente no pagó ese día (falta)
+// Registro en $0 = el cliente no pagó ese día (falta / incidencia)
 const isFalta = (pago: PaymentRecord): boolean => pago.status !== 'cancelado' && !(pago.amount > 0);
 
 // Chip pequeño del encabezado (contador de pagos / faltas)
@@ -93,7 +93,7 @@ export default function PaymentHistoryModal({ open, onClose, loan }: PaymentHist
         {
             color: theme.palette.error.main,
             label: 'Falta',
-            description: 'El cliente no pagó ese día (pago registrado en $0).',
+            description: 'El cliente no pagó ese día (incidencia registrada).',
         },
     ];
 
@@ -216,6 +216,7 @@ export default function PaymentHistoryModal({ open, onClose, loan }: PaymentHist
                                             <Typography variant="caption" color="text.secondary" noWrap component="div">
                                                 {config.label}
                                                 {pago.method ? ` · ${pago.method}` : ''}
+                                                {falta && typeof pago.latePaymentCharge === 'number' ? ' · Cargo moratorio' : ''}
                                             </Typography>
                                         </Box>
 
@@ -223,7 +224,9 @@ export default function PaymentHistoryModal({ open, onClose, loan }: PaymentHist
                                             variant="body2"
                                             sx={{ fontWeight: 800, color: config.color, flexShrink: 0 }}
                                         >
-                                            ${pago.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                                            {/* En una falta se muestra su cargo moratorio; en un pago, lo pagado */}
+                                            ${(falta && typeof pago.latePaymentCharge === 'number' ? pago.latePaymentCharge : pago.amount)
+                                                .toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                                         </Typography>
                                     </Stack>
                                 </ListItem>
