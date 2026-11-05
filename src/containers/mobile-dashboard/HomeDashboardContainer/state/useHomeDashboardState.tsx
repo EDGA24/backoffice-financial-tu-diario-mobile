@@ -3,7 +3,7 @@ import { get } from 'lodash';
 import { useCreditStore } from '@/stores/credits.store';
 import { useAuthStore } from '@/stores/auth.store';
 import { ChargeFrequencyDateRangeCatalog } from '@/shared/constants/catalogs/charge_frequency_date_range_catalog';
-import type { GetCreditSummaryResponse } from '@/types/GetCreditSummaryRequest';
+import type { GetCreditSummaryResponse } from '@/types/GetCreditSummaryResponse';
 import type { ResumeTodayStats } from '@/components/molecules/mobile/ResumeToday/ResumeToday';
 import { useNavigate } from 'react-router-dom';
 import { type NavKey } from '@/components/organisms/mobile/BottomNavigation/BottomNavigation';

@@ -13,12 +13,15 @@ import { GetPaymentRequest } from '@/types/GetPaymentRequest';
 import { PaymentTable } from '@/types/PaymentTable';
 import { GetWalletRequest } from '@/types/GetWalletRequest';
 import { WalletTable } from '@/types/WalletTable';
-import { GetCreditTotalsRequest, GetCreditTotalsResponse } from '@/types/GetCreditTotalsRequest';
-import { GetCreditSummaryRequest, GetCreditSummaryResponse } from '@/types/GetCreditSummaryRequest';
+import { GetCreditTotalsRequest } from '@/types/GetCreditTotalsRequest';
+import { GetCreditTotalsResponse } from '@/types/GetCreditTotalsResponse';
+import { GetCreditSummaryRequest } from '@/types/GetCreditSummaryRequest';
+import { GetCreditSummaryResponse } from '@/types/GetCreditSummaryResponse';
 import { useWalletLedgerStore } from './walletLedger.store';
 import { useAuthStore } from './auth.store';
 import { PaymentCategoryEnum } from '@/shared/constants/PaymentCategoryEnum';
-import { GetCreditPaymentsAndIncidentsRequest, GetCreditPaymentsAndIncidentsResponse } from '@/types/GetCreditPaymentsAndIncidentsRequest';
+import { GetCreditPaymentsAndIncidentsRequest } from '@/types/GetCreditPaymentsAndIncidentsRequest';
+import { GetCreditPaymentsAndIncidentsResponse } from '@/types/GetCreditPaymentsAndIncidentsResponse';
 
 // const BASE_URL = "https://credit-saas-gateway.onrender.com/credits";
 const BASE_URL = "http://localhost:4001/credits";

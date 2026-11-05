@@ -1,0 +1,34 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://EmployeeUser",
+    "title": "EmployeeUser",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "_id": {
+            "type": "string"
+        },
+        "userName": {
+            "type": "string"
+        },
+        "email": {
+            "type": "string"
+        },
+        "roles": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "status": {
+            "type": "string"
+        },
+        "creditorCompanyId": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "_id",
+        "userName"
+    ]
+}

@@ -1,8 +1,8 @@
 export interface EmployeeUser {
     _id:                string;
-    userName:           string;
+    creditorCompanyId?: string;
     email?:             string;
     roles?:             string[];
     status?:            string;
-    creditorCompanyId?: string;
+    userName:           string;
 }

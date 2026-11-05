@@ -54,6 +54,8 @@ export default function PaymentAmountModal({
     // que puede abonar algo (o todo) en el mismo cobro.
     const cargoPorFaltas = getFaltasPendientes(loan);
     const showMoratory = !isLiquidar && cargoPorFaltas > 0;
+    // El crédito ya está cubierto y solo se deben faltas: no se pide cantidad.
+    const soloFaltas = showMoratory && (loan?.amountDue ?? 0) > 0 && (loan?.amountPaid ?? 0) >= (loan?.amountDue ?? 0);
     // Mismo verde "success" del theme de la app (el que ya usa el botón
     // "Pagado" en la tarjeta) — no un color ad-hoc nuevo.
     const theme = useTheme();
@@ -69,7 +71,7 @@ export default function PaymentAmountModal({
                 const restante = Math.max(0, (loan?.amountDue ?? 0) - (loan?.amountPaid ?? 0));
                 setAmount(restante ? String(restante) : '');
             } else {
-                setAmount(loan?.fixedCharge ? String(loan.fixedCharge) : '');
+                setAmount(loan?.fixedCharge && !soloFaltas ? String(loan.fixedCharge) : '');
             }
             // El abono a faltas siempre arranca en 0: es opcional
             setMoratoryAmount(0);
@@ -81,7 +83,8 @@ export default function PaymentAmountModal({
     // Solo se registra el abono a faltas si es mayor a 0
     const abonaAlgo = showMoratory && moratoryAmount > 0;
     const totalHoy = amountNumber + (abonaAlgo ? moratoryAmount : 0);
-    const isValid = amount.trim() !== '' && !Number.isNaN(amountNumber) && amountNumber > 0;
+    // Basta con que haya algo que cobrar: pago del crédito, abono a faltas o ambos
+    const isValid = !Number.isNaN(amountNumber) && amountNumber >= 0 && (amountNumber > 0 || abonaAlgo);
 
     const handleClose = () => {
         if (loading) return;
@@ -152,7 +155,7 @@ export default function PaymentAmountModal({
                                 <Box>
                                     <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
                                         <Typography sx={{ fontWeight: 800, fontSize: 22 }}>
-                                            {isLiquidar ? 'Liquidar crédito' : 'Registrar pago'}
+                                            {isLiquidar ? 'Liquidar crédito' : soloFaltas ? 'Pagar faltas' : 'Registrar pago'}
                                         </Typography>
                                         {isLiquidar && (
                                             <Chip
@@ -223,43 +226,45 @@ export default function PaymentAmountModal({
                             </Box>
                         )}
 
-                        <TextField
-                            autoFocus={!isLiquidar}
-                            fullWidth
-                            type="number"
-                            label={isLiquidar ? 'Monto a liquidar' : 'Cantidad'}
-                            placeholder="0.00"
-                            value={amount}
-                            onChange={(e) => !isLiquidar && setAmount(e.target.value)}
-                            disabled={loading}
-                            helperText={
-                                isLiquidar
-                                    ? 'Monto fijo, calculado automáticamente — no editable'
-                                    : loan.fixedCharge
-                                        ? 'Monto fijo del crédito, puedes ajustarlo si el cliente paga distinto'
-                                        : ' '
-                            }
-                            sx={
-                                isLiquidar
-                                    ? {
-                                        '& .MuiOutlinedInput-root': {
-                                            bgcolor: alpha(successColor, 0.06),
-                                            '& fieldset': { borderColor: alpha(successColor, 0.5) },
-                                            '&:hover fieldset': { borderColor: successColor },
-                                        },
-                                        '& .MuiInputBase-input': { fontWeight: 700, color: successColor },
-                                    }
-                                    : undefined
-                            }
-                            slotProps={{
-                                input: {
-                                    startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                                },
-                                // Liquidar: monto fijo (lo que falta del crédito), no editable —
-                                // a diferencia de "Pagar", que sí se puede ajustar.
-                                htmlInput: { readOnly: isLiquidar },
-                            }}
-                        />
+                        {!soloFaltas && (
+                            <TextField
+                                autoFocus={!isLiquidar}
+                                fullWidth
+                                type="number"
+                                label={isLiquidar ? 'Monto a liquidar' : 'Cantidad'}
+                                placeholder="0.00"
+                                value={amount}
+                                onChange={(e) => !isLiquidar && setAmount(e.target.value)}
+                                disabled={loading}
+                                helperText={
+                                    isLiquidar
+                                        ? 'Monto fijo, calculado automáticamente — no editable'
+                                        : loan.fixedCharge
+                                            ? 'Monto fijo del crédito, puedes ajustarlo si el cliente paga distinto'
+                                            : ' '
+                                }
+                                sx={
+                                    isLiquidar
+                                        ? {
+                                            '& .MuiOutlinedInput-root': {
+                                                bgcolor: alpha(successColor, 0.06),
+                                                '& fieldset': { borderColor: alpha(successColor, 0.5) },
+                                                '&:hover fieldset': { borderColor: successColor },
+                                            },
+                                            '& .MuiInputBase-input': { fontWeight: 700, color: successColor },
+                                        }
+                                        : undefined
+                                }
+                                slotProps={{
+                                    input: {
+                                        startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                                    },
+                                    // Liquidar: monto fijo (lo que falta del crédito), no editable —
+                                    // a diferencia de "Pagar", que sí se puede ajustar.
+                                    htmlInput: { readOnly: isLiquidar },
+                                }}
+                            />
+                        )}
 
                         {showMoratory && (
                             <MoratoryAbonoSection
@@ -274,10 +279,12 @@ export default function PaymentAmountModal({
                         {/* Desglose del cobro: solo si abona algo a faltas */}
                         <Collapse in={abonaAlgo} timeout={200} unmountOnExit>
                             <Stack spacing={0.5} sx={{ mt: 2 }}>
-                                <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
-                                    <Typography variant="body2" color="text.secondary">Pago del crédito</Typography>
-                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatMoney(amountNumber || 0)}</Typography>
-                                </Stack>
+                                {amountNumber > 0 && (
+                                    <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+                                        <Typography variant="body2" color="text.secondary">Pago del crédito</Typography>
+                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatMoney(amountNumber)}</Typography>
+                                    </Stack>
+                                )}
                                 <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
                                     <Typography variant="body2" sx={{ color: 'error.main' }}>Abono a faltas</Typography>
                                     <Typography variant="body2" sx={{ fontWeight: 600, color: 'error.main' }}>{formatMoney(moratoryAmount)}</Typography>

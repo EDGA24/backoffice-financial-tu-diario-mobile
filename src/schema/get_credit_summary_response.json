@@ -1,0 +1,31 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://GetCreditSummaryResponse",
+    "title": "GetCreditSummaryResponse",
+    "type": "object",
+    "additionalProperties": false,
+    "description": "Un renglon por frecuencia de cobro (solo conteos, sin montos)",
+    "properties": {
+        "chargeFrequency": {
+            "type": "string"
+        },
+        "collected": {
+            "type": "number",
+            "description": "Pagos registrados en el periodo"
+        },
+        "new": {
+            "type": "number",
+            "description": "Creditos nuevos"
+        },
+        "renewed": {
+            "type": "number",
+            "description": "Renovaciones"
+        }
+    },
+    "required": [
+        "chargeFrequency",
+        "collected",
+        "new",
+        "renewed"
+    ]
+}

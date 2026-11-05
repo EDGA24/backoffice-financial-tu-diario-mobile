@@ -1,13 +1,13 @@
 export interface WalletTable {
-    _id?:                     string;
-    accountNumber?:           string;
-    status?:                  string;
-    userId?:                  string;
-    totalAmount?:             number;
-    firmBalance?:             number;
-    pendingIncomesBalance?:   number;
-    pendingExpensesBalance?:  number;
-    customerId?:              string;
-    createdAt?:               string;
-    updatedAt?:               string;
+    _id?:                    string;
+    accountNumber?:          string;
+    createdAt?:              string;
+    customerId?:             string;
+    firmBalance?:            number;
+    pendingExpensesBalance?: number;
+    pendingIncomesBalance?:  number;
+    status?:                 string;
+    totalAmount?:            number;
+    updatedAt?:              string;
+    userId?:                 string;
 }

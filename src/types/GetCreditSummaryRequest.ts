@@ -1,15 +1,9 @@
 export interface GetCreditSummaryRequest {
+    filtersItems?: FiltersItems;
     fromTimestamp: number;
-    toTimestamp: number;
-    filtersItems?: {
-        userId?: string;
-    };
+    toTimestamp:   number;
 }
 
-// Un renglón por frecuencia de cobro (solo conteos, sin montos)
-export interface GetCreditSummaryResponse {
-    chargeFrequency: string;
-    collected: number; // pagos registrados en el periodo
-    new: number;       // créditos nuevos
-    renewed: number;   // renovaciones
+export interface FiltersItems {
+    userId?: string;
 }

@@ -67,6 +67,8 @@ export default function LiquidationFlowModal({ open, loan, onClose, onPagar }: L
 
     const cargoPorFaltas = getFaltasPendientes(loan);
     const restante = Math.max(0, (loan?.amountDue ?? 0) - (loan?.amountPaid ?? 0));
+    // Crédito ya cubierto (solo debe faltas): se liquida con el pago del cargo.
+    const hayPagoLiquidacion = restante > 0;
     const totalACobrar = cargoPorFaltas + restante;
 
     const resetAndClose = () => {
@@ -106,15 +108,17 @@ export default function LiquidationFlowModal({ open, loan, onClose, onPagar }: L
                 setRowFalta('done');
             }
 
-            // 2. Liquidación de lo que falta del crédito
-            setRowLiquidacion('active');
-            const okLiquidacion = await registrarPago(restante, PaymentCategoryEnum.LIQUIDATION);
-            if (!okLiquidacion) {
-                setRowLiquidacion('error');
-                setError('No se pudo registrar el pago de liquidación. Verifica el saldo disponible.');
-                return;
+            // 2. Liquidación de lo que falta del crédito (con 0 no se crea)
+            if (hayPagoLiquidacion) {
+                setRowLiquidacion('active');
+                const okLiquidacion = await registrarPago(restante, PaymentCategoryEnum.LIQUIDATION);
+                if (!okLiquidacion) {
+                    setRowLiquidacion('error');
+                    setError('No se pudo registrar el pago de liquidación. Verifica el saldo disponible.');
+                    return;
+                }
+                setRowLiquidacion('done');
             }
-            setRowLiquidacion('done');
 
             // 3. Cierre (visual): los pagos ya quedaron registrados
             setRowCierre('active');
@@ -146,7 +150,8 @@ export default function LiquidationFlowModal({ open, loan, onClose, onPagar }: L
     const terminado = rowCierre === 'done';
     const closable = !(step === 'tracking' && !hasError && !terminado);
     const stepValue = (s: TrackRowState) => (s === 'done' ? 1 : s === 'active' ? 0.5 : 0);
-    const ringProgress = (stepValue(rowFalta) + stepValue(rowLiquidacion) + stepValue(rowCierre)) / 3;
+    const pasos = [rowFalta, ...(hayPagoLiquidacion ? [rowLiquidacion] : []), rowCierre];
+    const ringProgress = pasos.reduce((total, paso) => total + stepValue(paso), 0) / pasos.length;
 
     const desglose = (
         <Box
@@ -161,10 +166,12 @@ export default function LiquidationFlowModal({ open, loan, onClose, onPagar }: L
                 p: 2,
             }}
         >
-            <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary">Liquidación del crédito</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatMoney(restante)}</Typography>
-            </Stack>
+            {hayPagoLiquidacion && (
+                <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">Liquidación del crédito</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatMoney(restante)}</Typography>
+                </Stack>
+            )}
             <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
                 <Typography variant="body2" sx={{ color: 'error.main' }}>Cargo por faltas</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600, color: 'error.main' }}>{formatMoney(cargoPorFaltas)}</Typography>
@@ -231,7 +238,7 @@ export default function LiquidationFlowModal({ open, loan, onClose, onPagar }: L
                                 {desglose}
                                 <Stack spacing={1.5} sx={{ mt: 3 }}>
                                     <TrackRow label="Registrar pago del cargo por faltas" state="pending" />
-                                    <TrackRow label="Registrar pago de liquidación" state="pending" />
+                                    {hayPagoLiquidacion && <TrackRow label="Registrar pago de liquidación" state="pending" />}
                                     <TrackRow label="Cerrar el crédito" state="pending" />
                                 </Stack>
                             </>
@@ -275,12 +282,15 @@ export default function LiquidationFlowModal({ open, loan, onClose, onPagar }: L
                                         {formatMoney(totalACobrar)}
                                     </Typography>
                                     <Typography variant="caption" sx={{ opacity: 0.85, position: 'relative' }}>
-                                        {formatMoney(cargoPorFaltas)} de faltas + {formatMoney(restante)} de liquidación
+                                        {hayPagoLiquidacion
+                                            ? `${formatMoney(cargoPorFaltas)} de faltas + ${formatMoney(restante)} de liquidación`
+                                            : 'Cargo por faltas pendiente'}
                                     </Typography>
                                 </Box>
                                 <Typography variant="body2" color="text.secondary">
-                                    Se registrará primero el pago del cargo por faltas y después el de liquidación.
-                                    Los dos quedan pendientes de aprobación, como cualquier pago.
+                                    {hayPagoLiquidacion
+                                        ? 'Se registrará primero el pago del cargo por faltas y después el de liquidación. Los dos quedan pendientes de aprobación, como cualquier pago.'
+                                        : 'Se registrará el pago del cargo por faltas. Queda pendiente de aprobación, como cualquier pago.'}
                                 </Typography>
                             </>
                         )}
@@ -299,7 +309,7 @@ export default function LiquidationFlowModal({ open, loan, onClose, onPagar }: L
 
                                 <Stack spacing={1.75}>
                                     <TrackRow label="Registrar pago del cargo por faltas" state={rowFalta} />
-                                    <TrackRow label="Registrar pago de liquidación" state={rowLiquidacion} />
+                                    {hayPagoLiquidacion && <TrackRow label="Registrar pago de liquidación" state={rowLiquidacion} />}
                                     <TrackRow label="Cerrar el crédito" state={rowCierre} />
                                 </Stack>
 

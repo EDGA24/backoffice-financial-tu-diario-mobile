@@ -1,0 +1,52 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://SearchEmployeesRequest",
+    "title": "SearchEmployeesRequest",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "filtersItems": {
+            "type": "object",
+            "title": "FilterItemsEmployees",
+            "additionalProperties": false,
+            "properties": {
+                "generalSearch": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "creditorCompanyId": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "creditorCompanyId"
+            ]
+        },
+        "pagination": {
+            "type": "object",
+            "title": "Pagination",
+            "additionalProperties": false,
+            "properties": {
+                "pageNumber": {
+                    "type": "number"
+                },
+                "limit": {
+                    "type": "number"
+                }
+            },
+            "required": [
+                "pageNumber",
+                "limit"
+            ]
+        }
+    },
+    "required": [
+        "filtersItems",
+        "pagination"
+    ]
+}

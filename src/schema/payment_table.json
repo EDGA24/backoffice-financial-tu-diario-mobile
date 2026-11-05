@@ -1,0 +1,39 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://PaymentTable",
+    "title": "PaymentTable",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "_id": {
+            "type": "string"
+        },
+        "total": {
+            "type": "number"
+        },
+        "paymentMethod": {
+            "type": "string"
+        },
+        "paymentCategory": {
+            "type": "string"
+        },
+        "transactionStatus": {
+            "type": "string"
+        },
+        "transactionId": {
+            "type": "string"
+        },
+        "createdAt": {
+            "type": "string"
+        },
+        "updatedAt": {
+            "type": "string"
+        },
+        "creditId": {
+            "type": "string"
+        },
+        "customerId": {
+            "type": "string"
+        }
+    }
+}

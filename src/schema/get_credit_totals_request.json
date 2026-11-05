@@ -1,0 +1,36 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://GetCreditTotalsRequest",
+    "title": "GetCreditTotalsRequest",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "fromTimestamp": {
+            "type": "integer"
+        },
+        "toTimestamp": {
+            "type": "integer"
+        },
+        "filtersItems": {
+            "type": "object",
+            "title": "FiltersItems",
+            "additionalProperties": false,
+            "properties": {
+                "chargeFrequency": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "required": [
+        "fromTimestamp",
+        "toTimestamp",
+        "filtersItems"
+    ]
+}

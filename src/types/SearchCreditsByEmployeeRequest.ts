@@ -4,14 +4,16 @@ export interface SearchCreditsByEmployeeRequest {
 }
 
 export interface FiltersItems {
+    chargeFrequency?: string[];
+    /**
+     * Navegacion desde Transacciones hacia el credito relacionado: se manda solo uno de los
+     * dos, nunca ambos (ver UserRoleCatalogs.tsx en el backend)
+     */
+    creditId?:         string;
     creditorCompanyId: string;
     generalSearch?:    string;
+    transactionId?:    string;
     userId:            string;
-    chargeFrequency?:  string[];
-    // Navegación desde Transacciones hacia el crédito relacionado — se manda
-    // SOLO uno de los dos, nunca ambos (ver UserRoleCatalogs.tsx en el backend).
-    creditId?:      string;
-    transactionId?: string;
 }
 
 export interface Pagination {

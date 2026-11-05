@@ -1,15 +1,10 @@
 export interface GetCreditTotalsRequest {
+    filtersItems:  FiltersItems;
     fromTimestamp: number;
-    toTimestamp: number;
-    filtersItems: {
-        chargeFrequency?: string[];
-        userId?: string;
-    };
+    toTimestamp:   number;
 }
 
-export interface GetCreditTotalsResponse {
-    totalToCollect: number;
-    totalCollected: number;
-    totalPending: number;
-    totalOthers: number;
+export interface FiltersItems {
+    chargeFrequency?: string[];
+    userId?:          string;
 }

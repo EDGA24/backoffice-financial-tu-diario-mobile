@@ -198,8 +198,9 @@ export default function ContactPaymentList({
       const paymentCategory = mode === 'liquidar' ? PaymentCategoryEnum.LIQUIDATION : PaymentCategoryEnum.CHARGE_PERIOD;
 
       // 1. Pago principal — si ya se registró en un intento anterior (falló
-      // solo el abono a faltas), no se vuelve a mandar.
-      if (!pagoPrincipalRegistradoRef.current) {
+      // solo el abono a faltas), no se vuelve a mandar. Con 0 (solo abona a
+      // faltas) no se crea.
+      if (amount > 0 && !pagoPrincipalRegistradoRef.current) {
         const ok = await onPagar(loan, index, amount, paymentCategory);
         if (!ok) {
           // Se queda el modal abierto con el monto capturado, para reintentar
@@ -330,6 +331,8 @@ export default function ContactPaymentList({
           // Lo que falta por pagar del crédito completo — mismos valores que
           // ya trae el crédito (amountDue/amountPaid), sin llamar nada más.
           const restante = Math.max(0, (loan.amountDue ?? 0) - (loan.amountPaid ?? 0));
+          // También se liquida un crédito ya cubierto que solo debe faltas
+          const puedeLiquidar = restante > 0 || getFaltasPendientes(loan) > 0;
 
           return (
             <Card
@@ -483,13 +486,13 @@ export default function ContactPaymentList({
                     </MenuItem>
 
                     <Tooltip
-                      title={restante > 0 ? '' : 'Este crédito ya está liquidado'}
+                      title={puedeLiquidar ? '' : 'Este crédito ya está liquidado'}
                       placement="left"
                     >
                       <span>
                         <MenuItem
                           onClick={(e) => handleAbrirModalLiquidar(e, loan, i)}
-                          disabled={restante <= 0}
+                          disabled={!puedeLiquidar}
                         >
                           <ListItemIcon>
                             <PaidRoundedIcon fontSize="small" />

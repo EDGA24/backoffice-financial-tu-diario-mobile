@@ -1,0 +1,40 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://SearchCustomersByEmployeeRequest",
+    "title": "SearchCustomersByEmployeeRequest",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "filtersItems": {
+            "type": "object",
+            "title": "FiltersItems",
+            "additionalProperties": false,
+            "properties": {
+                "generalSearch": {
+                    "type": "string"
+                }
+            }
+        },
+        "pagination": {
+            "type": "object",
+            "title": "Pagination",
+            "additionalProperties": false,
+            "properties": {
+                "pageNumber": {
+                    "type": "number"
+                },
+                "limit": {
+                    "type": "number"
+                }
+            },
+            "required": [
+                "pageNumber",
+                "limit"
+            ]
+        }
+    },
+    "required": [
+        "filtersItems",
+        "pagination"
+    ]
+}

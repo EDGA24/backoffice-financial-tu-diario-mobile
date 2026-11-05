@@ -1,0 +1,87 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://GetCreditPaymentsAndIncidentsResponse",
+    "title": "GetCreditPaymentsAndIncidentsResponse",
+    "type": "object",
+    "additionalProperties": false,
+    "description": "Pagos (> $0) e incidencias (faltas) del credito, cada lista ordenada del mas antiguo al mas reciente",
+    "definitions": {
+        "PaymentTable": {
+            "title": "PaymentTable",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "_id": {
+                    "type": "string"
+                },
+                "total": {
+                    "type": "number"
+                },
+                "paymentMethod": {
+                    "type": "string"
+                },
+                "paymentCategory": {
+                    "type": "string"
+                },
+                "transactionStatus": {
+                    "type": "string"
+                },
+                "transactionId": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "creditId": {
+                    "type": "string"
+                },
+                "customerId": {
+                    "type": "string"
+                }
+            }
+        },
+        "IncidentTable": {
+            "title": "IncidentTable",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "_id": {
+                    "type": "string"
+                },
+                "latePaymentCharge": {
+                    "type": "number"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "properties": {
+        "payments": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/PaymentTable"
+            }
+        },
+        "incidents": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/IncidentTable"
+            }
+        }
+    },
+    "required": [
+        "payments",
+        "incidents"
+    ]
+}

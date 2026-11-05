@@ -1,0 +1,104 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://Credits",
+    "title": "Credits",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "created": {
+            "type": "number"
+        },
+        "startDateChargeConfig": {
+            "type": "number",
+            "description": "Se precarga con la fecha del ultimo reporte de cobro realizado al cobrador"
+        },
+        "admissionDate": {
+            "type": "number"
+        },
+        "expirationDate": {
+            "type": "number"
+        },
+        "creditId": {
+            "type": "string",
+            "description": "ID del credito original que se esta renovando. Solo se manda en renovaciones"
+        },
+        "creditAmount": {
+            "type": "number"
+        },
+        "creditAmountWithMoratory": {
+            "type": "number"
+        },
+        "amountMoratory": {
+            "type": "number"
+        },
+        "amountPaidMoratory": {
+            "type": "number"
+        },
+        "fixedCharge": {
+            "type": "number"
+        },
+        "status": {
+            "type": "string"
+        },
+        "creationStatus": {
+            "type": "string",
+            "enum": [
+                "new",
+                "renewed"
+            ]
+        },
+        "chargeRules": {
+            "type": "object",
+            "title": "ChargeRules",
+            "additionalProperties": false,
+            "properties": {
+                "chargeFrequency": {
+                    "type": "string"
+                },
+                "chargePeriods": {
+                    "type": "number"
+                },
+                "chargeDay": {
+                    "type": "string",
+                    "description": "Solo aplica a chargeFrequency weekly: dia de la semana en que cae el cobro. El backend la usa para calcular startDateChargeConfig (ver ChargeFrequencyDateCatalog)"
+                },
+                "renovationPeriod": {
+                    "type": "number"
+                },
+                "comissionRate": {
+                    "type": "number"
+                },
+                "firstCharge": {
+                    "type": "boolean",
+                    "description": "Viene de la regla de la empresa: si es true, se registra el primer pago en cuanto se crea el credito (nuevo o renovacion)"
+                },
+                "latePaymentCharge": {
+                    "type": "number",
+                    "description": "Moratorio fijo en pesos (ej. 50 = $50) por incumplimiento: solo se guarda en el credito"
+                }
+            }
+        },
+        "userId": {
+            "type": "string"
+        },
+        "creditorCompanyId": {
+            "type": "string"
+        },
+        "transactionId": {
+            "type": "string"
+        },
+        "customerId": {
+            "type": "string"
+        },
+        "customerName": {
+            "type": "string",
+            "description": "Solo del request: descripcion de la transaccion, no se guarda en el credito"
+        }
+    },
+    "required": [
+        "userId",
+        "creditorCompanyId",
+        "transactionId",
+        "customerId"
+    ]
+}

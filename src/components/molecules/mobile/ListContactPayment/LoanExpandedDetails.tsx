@@ -83,9 +83,14 @@ export default function LoanExpandedDetails({ loan, realPayments, loadingRealPay
     ? [...realPayments].sort((a, b) => new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime()).at(-1)
     : undefined;
   const fechaBase = ultimoRegistro?.createdAt ?? loan.startDateChargeConfig;
-  const proximoPago = fechaBase
-    ? formatDate(new Date(new Date(fechaBase).getTime() + periodDays * 24 * 60 * 60 * 1000))
+  const fechaProximoPago = fechaBase
+    ? new Date(new Date(fechaBase).getTime() + periodDays * 24 * 60 * 60 * 1000)
     : undefined;
+  // En los diarios el domingo no es día de cobro: si cae en domingo, pasa al lunes.
+  if (fechaProximoPago && loan.chargeFrequency === 'daily' && fechaProximoPago.getDay() === 0) {
+    fechaProximoPago.setDate(fechaProximoPago.getDate() + 1);
+  }
+  const proximoPago = fechaProximoPago ? formatDate(fechaProximoPago) : undefined;
 
   return (
     <Box sx={{ pt: 1.5, pb: 0.5 }}>

@@ -24,6 +24,12 @@
             "type": "string"
           }
         },
+        "chargeFrequency": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "generalSearch": {
           "type": "string"
         },
@@ -48,10 +54,10 @@
           "additionalProperties": false,
           "properties": {
             "startDate": {
-              "type": "string"
+              "type": "number"
             },
             "endDate": {
-              "type": "string"
+              "type": "number"
             }
           }
         }

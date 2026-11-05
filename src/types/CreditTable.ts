@@ -1,42 +1,47 @@
 export interface CreditTable {
     _id:                      string;
     admissionDate:            Date;
-    chargeRules:              ChargeRules;
-    creditAmount:             number;
     amountDue?:               number;
+    amountMoratory?:          number;
     amountPaid?:              number;
+    amountPaidMoratory?:      number;
+    changeDateStatus?:        Date;
+    chargeRules:              ChargeRules;
+    creationStatus?:          CreationStatus;
+    creditAmount:             number;
     creditAmountWithMoratory: number;
-    amountMoratory?: number;
-    amountPaidMoratory?: number;
     creditorCompanyId:        string;
     customerBasicInfo?:       CustomerBasicInfo;
     customerId:               string;
     employeeBasicInfo?:       EmployeeBasicInfo;
     expirationDate:           Date;
     fixedCharge:              number;
-    startDateChargeConfig:    Date;
-    status:                   Status;
-    transactionStatus?:       string;
-    transactionId:            string;
-    userId:                   string;
     lastPayment?:             LastPayment;
     lastPaymentDateApproved?: Date;
-}
-
-export interface LastPayment {
-    createdAt:         Date;
-    transactionStatus: string;
-    total:              number;
+    startDateChargeConfig:    Date;
+    /**
+     * Coincide con CreditStatusEnum del backend: minusculas, guion bajo, y reestructured con
+     * doble e
+     */
+    status:             Status;
+    transactionId:      string;
+    transactionStatus?: string;
+    userId:             string;
 }
 
 export interface ChargeRules {
-    chargeFrequency:  string;
-    chargePeriods:    number;
-    chargeDay?:       string;
-    comissionRate:    number;
-    renovationPeriod: number;
-    firstCharge?:     boolean;
+    chargeDay?:         string;
+    chargeFrequency:    string;
+    chargePeriods:      number;
+    comissionRate:      number;
+    firstCharge?:       boolean;
     latePaymentCharge?: number;
+    renovationPeriod:   number;
+}
+
+export enum CreationStatus {
+    New = "new",
+    Renewed = "renewed",
 }
 
 export interface CustomerBasicInfo {
@@ -51,11 +56,19 @@ export interface EmployeeBasicInfo {
     userId:      string;
 }
 
-// Coincide con el enum real del backend (CreditStatusEnum.ts): minúsculas,
-// guion bajo, y "reestructured" con doble "e" (no "restructured").
+export interface LastPayment {
+    createdAt:         Date;
+    total:             number;
+    transactionStatus: string;
+}
+
+/**
+ * Coincide con CreditStatusEnum del backend: minusculas, guion bajo, y reestructured con
+ * doble e
+ */
 export enum Status {
     ChargeProcess = "charge_process",
     Paid = "paid",
-    Restructured = "reestructured",
+    Reestructured = "reestructured",
     SlowPay = "slow_pay",
 }

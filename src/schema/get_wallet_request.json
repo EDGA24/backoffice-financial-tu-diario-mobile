@@ -1,0 +1,15 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://GetWalletRequest",
+    "title": "GetWalletRequest",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "walletId": {
+            "type": "string"
+        },
+        "userId": {
+            "type": "string"
+        }
+    }
+}

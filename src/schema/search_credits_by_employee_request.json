@@ -17,6 +17,19 @@
                 },
                 "generalSearch": {
                     "type": "string"
+                },
+                "chargeFrequency": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "creditId": {
+                    "type": "string",
+                    "description": "Navegacion desde Transacciones hacia el credito relacionado: se manda solo uno de los dos, nunca ambos (ver UserRoleCatalogs.tsx en el backend)"
+                },
+                "transactionId": {
+                    "type": "string"
                 }
             },
             "required": [

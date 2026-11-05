@@ -1,8 +1,10 @@
 export interface Customers {
-    contact:             Contact;
-    // Aval del cliente — solo información de respaldo (contacto de la persona
-    // que lo avala). Opcional; el backend lo guarda al crear el cliente.
+    /**
+     * Aval del cliente: solo informacion de respaldo (contacto de la persona que lo avala).
+     * Opcional; el backend lo guarda al crear el cliente
+     */
     aval?:               Aval;
+    contact:             Contact;
     created?:            number;
     creditorCompanyId:   string;
     status?:             string;
@@ -10,10 +12,16 @@ export interface Customers {
     userId:              string;
 }
 
+/**
+ * Aval del cliente: solo informacion de respaldo (contacto de la persona que lo avala).
+ * Opcional; el backend lo guarda al crear el cliente
+ */
 export interface Aval {
-    // Solo si el aval ya es un cliente registrado (se eligió del buscador)
+    contact: Contact;
+    /**
+     * Solo si el aval ya es un cliente registrado (se eligio del buscador)
+     */
     customerId?: string;
-    contact:     Contact;
 }
 
 export interface Contact {

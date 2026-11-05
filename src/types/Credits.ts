@@ -1,21 +1,24 @@
 export interface Credits {
     admissionDate?:            number;
+    amountMoratory?:           number;
+    amountPaidMoratory?:       number;
     chargeRules?:              ChargeRules;
     created?:                  number;
     creationStatus?:           CreationStatus;
-    // ID del crédito original que se está renovando. Solo se manda en renovaciones.
-    creditId?:                 string;
     creditAmount?:             number;
     creditAmountWithMoratory?: number;
-    amountMoratory?: number;
-    amountPaidMoratory?: number;
-    creditorCompanyId:         string;
-    customerId:                string;
-    // Solo del request: el backend lo usa para la descripción de la
-    // transacción ("CREDIT - <nombre>"), no se guarda en el crédito.
-    customerName?:             string;
-    expirationDate?:           number;
-    fixedCharge?:              number;
+    /**
+     * ID del credito original que se esta renovando. Solo se manda en renovaciones
+     */
+    creditId?:         string;
+    creditorCompanyId: string;
+    customerId:        string;
+    /**
+     * Solo del request: descripcion de la transaccion, no se guarda en el credito
+     */
+    customerName?:   string;
+    expirationDate?: number;
+    fixedCharge?:    number;
     /**
      * Se precarga con la fecha del ultimo reporte de cobro realizado al cobrador
      */
@@ -26,20 +29,24 @@ export interface Credits {
 }
 
 export interface ChargeRules {
-    chargeFrequency?:  string;
-    chargePeriods?:    number;
-    // Solo aplica a chargeFrequency "weekly" — día de la semana en que cae
-    // el cobro (ej. "monday"). El backend la usa para calcular
-    // startDateChargeConfig (ver ChargeFrequencyDateCatalog).
-    chargeDay?:        string;
-    comissionRate?:    number;
-    renovationPeriod?: number;
-    // Viene de la regla de la empresa: si es true, se registra el primer
-    // pago en cuanto se crea el crédito (nuevo o renovación).
-    firstCharge?:      boolean;
-    // Moratorio fijo en pesos (ej. 50 = $50) por incumplimiento — solo se
-    // guarda en el crédito; el cargo lo aplicará el cron de incidencias.
+    /**
+     * Solo aplica a chargeFrequency weekly: dia de la semana en que cae el cobro. El backend la
+     * usa para calcular startDateChargeConfig (ver ChargeFrequencyDateCatalog)
+     */
+    chargeDay?:       string;
+    chargeFrequency?: string;
+    chargePeriods?:   number;
+    comissionRate?:   number;
+    /**
+     * Viene de la regla de la empresa: si es true, se registra el primer pago en cuanto se crea
+     * el credito (nuevo o renovacion)
+     */
+    firstCharge?: boolean;
+    /**
+     * Moratorio fijo en pesos (ej. 50 = $50) por incumplimiento: solo se guarda en el credito
+     */
     latePaymentCharge?: number;
+    renovationPeriod?:  number;
 }
 
 export enum CreationStatus {

@@ -5,6 +5,7 @@ export interface SearchTransactionsRequest {
 
 export interface FiltersItems {
     accountInformacion?: AccountInformacion;
+    chargeFrequency?:    string[];
     createdRangeDate?:   CreatedRangeDate;
     creditorCompanyId:   string;
     generalSearch?:      string;
@@ -18,8 +19,8 @@ export interface AccountInformacion {
 }
 
 export interface CreatedRangeDate {
-    endDate?:   string;
-    startDate?: string;
+    endDate?:   number;
+    startDate?: number;
 }
 
 export interface Pagination {

@@ -115,6 +115,8 @@ export default function RenewalFlowModal({ open, loan, onClose, onReadyToCreateC
     // (ej. un pago grande al inicio), cobrar fixedCharge de más se pasaría
     // del amountDue. Mismo cálculo que usa "Liquidar" en ContactPaymentList.
     const restante = Math.max(0, (loan?.amountDue ?? 0) - (loan?.amountPaid ?? 0));
+    // Crédito ya cubierto (solo debe faltas): no hay pago de renovación que registrar.
+    const hayPagoRenovacion = restante > 0;
     // Cargo por faltas: si hay, se cobra primero; sin pagarlo no se renueva.
     const cargoPorFaltas = getFaltasPendientes(loan);
     const tieneFaltas = cargoPorFaltas > 0;
@@ -146,28 +148,31 @@ export default function RenewalFlowModal({ open, loan, onClose, onReadyToCreateC
                 setRowFalta('done');
             }
 
-            setRowPago('active');
-            const [ok] = await Promise.all([
-                createPayment({
-                    creditId: loan.creditId,
-                    customerId: loan.customerId ?? '',
-                    // Para la descripción de la transacción ("PAGO - <nombre>")
-                    customerName: loan.name,
-                    total: restante,
-                    // Pago de renovación: siempre liquida el remanente completo,
-                    // nunca cuenta como cuota normal del periodo.
-                    paymentCategory: PaymentCategoryEnum.RENEWAL,
-                }),
-                wait(MIN_PAGO_DURATION_MS),
-            ]);
+            if (hayPagoRenovacion) {
+                setRowPago('active');
+                const [ok] = await Promise.all([
+                    createPayment({
+                        creditId: loan.creditId,
+                        customerId: loan.customerId ?? '',
+                        // Para la descripción de la transacción ("PAGO - <nombre>")
+                        customerName: loan.name,
+                        total: restante,
+                        // Pago de renovación: siempre liquida el remanente completo,
+                        // nunca cuenta como cuota normal del periodo.
+                        paymentCategory: PaymentCategoryEnum.RENEWAL,
+                    }),
+                    wait(MIN_PAGO_DURATION_MS),
+                ]);
 
-            if (!ok) {
-                setRowPago('error');
-                setError('No se pudo registrar el pago de renovación. Verifica el saldo disponible.');
-                return;
+                if (!ok) {
+                    setRowPago('error');
+                    setError('No se pudo registrar el pago de renovación. Verifica el saldo disponible.');
+                    return;
+                }
+
+                setRowPago('done');
             }
 
-            setRowPago('done');
             setRowInfo('active');
 
             timeouts.current.push(
@@ -218,9 +223,13 @@ export default function RenewalFlowModal({ open, loan, onClose, onReadyToCreateC
     // activo) — solo se puede cerrar si ya terminó con error.
     const closable = !(step === 'tracking' && !hasError);
     const stepValue = (s: TrackRowState) => (s === 'done' ? 1 : s === 'active' ? 0.5 : 0);
-    const ringProgress = tieneFaltas
-        ? (stepValue(rowFalta) + stepValue(rowPago) + stepValue(rowInfo) + stepValue(rowCredito)) / 4
-        : (stepValue(rowPago) + stepValue(rowInfo) + stepValue(rowCredito)) / 3;
+    const pasos = [
+        ...(tieneFaltas ? [rowFalta] : []),
+        ...(hayPagoRenovacion ? [rowPago] : []),
+        rowInfo,
+        rowCredito,
+    ];
+    const ringProgress = pasos.reduce((total, paso) => total + stepValue(paso), 0) / pasos.length;
 
     return (
         <Drawer
@@ -282,13 +291,15 @@ export default function RenewalFlowModal({ open, loan, onClose, onReadyToCreateC
                                     </Box>
                                 )}
                                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                                    Para renovar este crédito se registrará el pago de lo que falta para
-                                    liquidarlo y posteriormente se cargará la información del cliente para
+                                    {hayPagoRenovacion
+                                        ? 'Para renovar este crédito se registrará el pago de lo que falta para liquidarlo'
+                                        : 'Para renovar este crédito se registrará el pago del cargo por faltas'}
+                                    {' '}y posteriormente se cargará la información del cliente para
                                     registrar el nuevo crédito.
                                 </Typography>
                                 <Stack spacing={1.5}>
                                     {tieneFaltas && <TrackRow label="Registrar pago del cargo por faltas" state="pending" />}
-                                    <TrackRow label="Registrar pago de renovación" state="pending" />
+                                    {hayPagoRenovacion && <TrackRow label="Registrar pago de renovación" state="pending" />}
                                     <TrackRow label="Cargar información del cliente" state="pending" />
                                     <TrackRow label="Registrar nuevo crédito" state="pending" />
                                 </Stack>
@@ -334,9 +345,11 @@ export default function RenewalFlowModal({ open, loan, onClose, onReadyToCreateC
                                         <CountUpAmount value={cuotaNumber} />
                                     </Typography>
                                     <Typography variant="caption" sx={{ opacity: 0.85, position: 'relative' }}>
-                                        {tieneFaltas
-                                            ? `${formatMoney(cargoPorFaltas)} de faltas + ${formatMoney(restante)} para liquidar el crédito actual`
-                                            : 'Lo que falta para liquidar el crédito actual'}
+                                        {!hayPagoRenovacion
+                                            ? 'Cargo por faltas pendiente del crédito actual'
+                                            : tieneFaltas
+                                                ? `${formatMoney(cargoPorFaltas)} de faltas + ${formatMoney(restante)} para liquidar el crédito actual`
+                                                : 'Lo que falta para liquidar el crédito actual'}
                                     </Typography>
                                 </Box>
                                 <Typography variant="body2" color="text.secondary">
@@ -360,7 +373,7 @@ export default function RenewalFlowModal({ open, loan, onClose, onReadyToCreateC
 
                                 <Stack spacing={1.75}>
                                     {tieneFaltas && <TrackRow label="Registrar pago del cargo por faltas" state={rowFalta} />}
-                                    <TrackRow label="Registrar pago de renovación" state={rowPago} />
+                                    {hayPagoRenovacion && <TrackRow label="Registrar pago de renovación" state={rowPago} />}
                                     <TrackRow label="Cargar información del cliente" state={rowInfo} />
                                     <TrackRow label="Registrar nuevo crédito" state={rowCredito} />
                                 </Stack>

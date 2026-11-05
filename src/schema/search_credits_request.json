@@ -9,16 +9,43 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "creditorCompanyId": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "customerId": {
+          "type": "string"
+        },
         "status": {
           "type": "array",
           "items": {
             "type": "string"
           }
         },
-       "creditorCompanyId": {
-          "type": "string"
+        "transactionStatus": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdRangeDate": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "startDate": {
+              "type": "number"
+            },
+            "endDate": {
+              "type": "number"
+            }
+          }
         }
-      }
+      },
+      "required": [
+        "creditorCompanyId"
+      ]
     },
     "pagination": {
       "type": "object",

@@ -77,6 +77,27 @@
                 "fullName",
                 "phoneNumber"
             ]
+        },
+        "lastPayment": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "createdAt": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "transactionStatus": {
+                    "type": "string"
+                },
+                "total": {
+                    "type": "number"
+                }
+            },
+            "required": [
+                "createdAt",
+                "transactionStatus",
+                "total"
+            ]
         }
     },
     "properties": {
@@ -99,7 +120,17 @@
             "type": "string",
             "format": "date-time"
         },
+        "changeDateStatus": {
+            "type": "string",
+            "format": "date-time"
+        },
         "creditAmount": {
+            "type": "number"
+        },
+        "amountDue": {
+            "type": "number"
+        },
+        "amountPaid": {
             "type": "number"
         },
         "creditAmountWithMoratory": {
@@ -116,7 +147,23 @@
         },
         "status": {
             "type": "string",
-            "enum": ["CHARGE-PROCESS", "SLOW-PAY", "PAID", "RESTRUCTURED"]
+            "enum": [
+                "charge_process",
+                "slow_pay",
+                "paid",
+                "reestructured"
+            ],
+            "description": "Coincide con CreditStatusEnum del backend: minusculas, guion bajo, y reestructured con doble e"
+        },
+        "creationStatus": {
+            "type": "string",
+            "enum": [
+                "new",
+                "renewed"
+            ]
+        },
+        "transactionStatus": {
+            "type": "string"
         },
         "chargeRules": {
             "$ref": "#definitions/chargeRules"
@@ -138,6 +185,9 @@
         },
         "employeeBasicInfo": {
             "$ref": "#definitions/employeeBasicInfo"
+        },
+        "lastPayment": {
+            "$ref": "#definitions/lastPayment"
         }
     },
     "required": [

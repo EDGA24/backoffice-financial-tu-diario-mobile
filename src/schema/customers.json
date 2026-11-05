@@ -46,6 +46,24 @@
                 }
             }
         },
+        "aval": {
+            "type": "object",
+            "title": "Aval",
+            "additionalProperties": false,
+            "properties": {
+                "customerId": {
+                    "type": "string",
+                    "description": "Solo si el aval ya es un cliente registrado (se eligio del buscador)"
+                },
+                "contact": {
+                    "$ref": "#/properties/contact"
+                }
+            },
+            "required": [
+                "contact"
+            ],
+            "description": "Aval del cliente: solo informacion de respaldo (contacto de la persona que lo avala). Opcional; el backend lo guarda al crear el cliente"
+        },
         "creditorCompanyId": {
             "type": "string"
         },

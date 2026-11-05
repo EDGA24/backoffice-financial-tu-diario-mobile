@@ -1,0 +1,42 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://WalletTable",
+    "title": "WalletTable",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "_id": {
+            "type": "string"
+        },
+        "accountNumber": {
+            "type": "string"
+        },
+        "status": {
+            "type": "string"
+        },
+        "userId": {
+            "type": "string"
+        },
+        "totalAmount": {
+            "type": "number"
+        },
+        "firmBalance": {
+            "type": "number"
+        },
+        "pendingIncomesBalance": {
+            "type": "number"
+        },
+        "pendingExpensesBalance": {
+            "type": "number"
+        },
+        "customerId": {
+            "type": "string"
+        },
+        "createdAt": {
+            "type": "string"
+        },
+        "updatedAt": {
+            "type": "string"
+        }
+    }
+}

@@ -1,0 +1,60 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://Transactions",
+    "title": "Transactions",
+    "type": "object",
+    "additionalProperties": false,
+    "definitions": {
+        "TransactionAccount": {
+            "type": "object",
+            "title": "TransactionAccount",
+            "additionalProperties": false,
+            "properties": {
+                "accountNumber": {
+                    "type": "string"
+                },
+                "walletId": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "walletId"
+            ]
+        }
+    },
+    "properties": {
+        "transactionType": {
+            "type": "string"
+        },
+        "transactionSubType": {
+            "type": "string"
+        },
+        "status": {
+            "type": "string"
+        },
+        "total": {
+            "type": "number"
+        },
+        "description": {
+            "type": "string"
+        },
+        "currency": {
+            "type": "string"
+        },
+        "sourceAccount": {
+            "$ref": "#/definitions/TransactionAccount"
+        },
+        "destinationAccount": {
+            "$ref": "#/definitions/TransactionAccount"
+        },
+        "creditIdSource": {
+            "type": "string"
+        },
+        "creditorCompanyId": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "creditorCompanyId"
+    ]
+}

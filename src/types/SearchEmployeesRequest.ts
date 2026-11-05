@@ -4,11 +4,12 @@ export interface SearchEmployeesRequest {
 }
 
 export interface FilterItemsEmployees {
-    status?:            string[];
-    creditorCompanyId:  string;
+    creditorCompanyId: string;
+    generalSearch?:    string;
+    status?:           string[];
 }
 
 export interface Pagination {
-    pageNumber: number;
     limit:      number;
+    pageNumber: number;
 }

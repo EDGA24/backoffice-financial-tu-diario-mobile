@@ -1,4 +1,4 @@
 export interface GetWalletRequest {
-    walletId?: string;
     userId?:   string;
+    walletId?: string;
 }

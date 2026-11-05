@@ -1,0 +1,154 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "http://LoginResponse",
+    "title": "LoginResponse",
+    "type": "object",
+    "additionalProperties": false,
+    "definitions": {
+        "LoginResponseChargeRules": {
+            "type": "object",
+            "title": "LoginResponseChargeRules",
+            "additionalProperties": false,
+            "properties": {
+                "chargeFrequency": {
+                    "type": "string"
+                },
+                "chargePeriods": {
+                    "type": "number"
+                },
+                "chargeDay": {
+                    "type": "string"
+                },
+                "renovationPeriod": {
+                    "type": "number"
+                },
+                "comissionRate": {
+                    "type": "number"
+                },
+                "firstCharge": {
+                    "type": "boolean"
+                },
+                "latePaymentCharge": {
+                    "type": "number"
+                }
+            }
+        }
+    },
+    "properties": {
+        "token": {
+            "type": "string"
+        },
+        "user": {
+            "type": "object",
+            "title": "LoginResponseUser",
+            "additionalProperties": false,
+            "properties": {
+                "_id": {
+                    "type": "string"
+                },
+                "userName": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "creditorCompanyId": {
+                    "type": "string"
+                },
+                "walletId": {
+                    "type": "string"
+                },
+                "accountNumber": {
+                    "type": "string"
+                },
+                "creditorCompanyInfo": {
+                    "type": "object",
+                    "title": "LoginResponseCreditorCompanyInfo",
+                    "additionalProperties": false,
+                    "properties": {
+                        "_id": {
+                            "type": "string"
+                        },
+                        "companyName": {
+                            "type": "string"
+                        },
+                        "socialReason": {
+                            "type": "string"
+                        },
+                        "phoneNumber": {
+                            "type": "string"
+                        },
+                        "email": {
+                            "type": "string"
+                        },
+                        "chargeRules": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/LoginResponseChargeRules"
+                            }
+                        }
+                    },
+                    "required": [
+                        "_id",
+                        "companyName",
+                        "socialReason",
+                        "phoneNumber",
+                        "email"
+                    ]
+                },
+                "walletSnapshot": {
+                    "type": "object",
+                    "title": "WalletSnapshot",
+                    "additionalProperties": false,
+                    "properties": {
+                        "firmBalance": {
+                            "type": "number"
+                        },
+                        "pendingIncomesBalance": {
+                            "type": "number"
+                        },
+                        "pendingExpensesBalance": {
+                            "type": "number"
+                        },
+                        "queriedAt": {
+                            "type": "number",
+                            "description": "Epoch millis (Date.now()) del momento exacto en que el backend consulto este saldo"
+                        }
+                    },
+                    "required": [
+                        "firmBalance",
+                        "pendingIncomesBalance",
+                        "pendingExpensesBalance",
+                        "queriedAt"
+                    ],
+                    "description": "Foto del saldo de la wallet al momento del login: arranca la cartera local (ver walletLedger.store.ts). No es opcional: el backend siempre la manda, en ceros si el user todavia no tiene wallet"
+                }
+            },
+            "required": [
+                "_id",
+                "userName",
+                "email",
+                "roles",
+                "permissions",
+                "creditorCompanyId",
+                "walletSnapshot"
+            ]
+        }
+    },
+    "required": [
+        "token",
+        "user"
+    ]
+}

@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "id": "http://TransactionTable",
-    "title": "Transactions",
+    "title": "TransactionTable",
     "type": "object",
     "additionalProperties": false,
     "properties": {
@@ -15,6 +15,9 @@
             "type": "string"
         },
         "transactionType": {
+            "type": "string"
+        },
+        "transactionSubType": {
             "type": "string"
         },
         "total": {
@@ -34,6 +37,32 @@
         },
         "creditorCompanyId": {
             "type": "string"
+        },
+        "creditBasicInfo": {
+            "type": "object",
+            "title": "CreditBasicInfo",
+            "additionalProperties": false,
+            "required": [
+                "creditId",
+                "total",
+                "amountPaid",
+                "amountDue"
+            ],
+            "properties": {
+                "creditId": {
+                    "type": "string"
+                },
+                "total": {
+                    "type": "number"
+                },
+                "amountPaid": {
+                    "type": "number"
+                },
+                "amountDue": {
+                    "type": "number"
+                }
+            },
+            "description": "Info del credito enlazado (creditInfo[0] del join en el backend): trae el _id real del credito para poder navegar de la transaccion a su credito"
         },
         "sourceAccount": {
             "type": "object",

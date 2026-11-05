@@ -1,6 +1,10 @@
 export interface TransactionTable {
-    _id?:                string;
-    createdAt?:          string;
+    _id?:       string;
+    createdAt?: string;
+    /**
+     * Info del credito enlazado (creditInfo[0] del join en el backend): trae el _id real del
+     * credito para poder navegar de la transaccion a su credito
+     */
     creditBasicInfo?:    CreditBasicInfo;
     creditIdSource?:     string;
     creditorCompanyId?:  string;
@@ -10,17 +14,20 @@ export interface TransactionTable {
     sourceAccount?:      SourceAccount;
     status?:             string;
     total?:              number;
+    transactionSubType?: string;
     transactionType?:    string;
     updatedAt?:          string;
 }
 
-// Info del crédito enlazado (creditInfo[0] del join en el backend) — trae el
-// _id real del crédito para poder navegar de la transacción a su crédito.
+/**
+ * Info del credito enlazado (creditInfo[0] del join en el backend): trae el _id real del
+ * credito para poder navegar de la transaccion a su credito
+ */
 export interface CreditBasicInfo {
-    creditId:    string;
-    total:       number;
-    amountPaid:  number;
-    amountDue:   number;
+    amountDue:  number;
+    amountPaid: number;
+    creditId:   string;
+    total:      number;
 }
 
 export interface DestinationAccount {
